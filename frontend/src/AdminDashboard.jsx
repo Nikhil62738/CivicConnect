@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
+import React, { useState, useEffect, useMemo } from 'react';
+import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip } from 'react-leaflet';
+import { maharashtraDistricts, districtCoords } from './constants';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
 
 export default function AdminDashboard() {
   const [issues, setIssues] = useState([]);
@@ -12,7 +14,9 @@ export default function AdminDashboard() {
   const [filterDept, setFilterDept] = useState('All');
   const [filterDistrict, setFilterDistrict] = useState('All');
   const [filterTaluka, setFilterTaluka] = useState('All');
+  const [filterTime, setFilterTime] = useState('Monthly'); // Today, Weekly, Monthly, All
   const [searchTerm, setSearchTerm] = useState('');
+  const [mapView, setMapView] = useState('city'); // issues, city
 
   // Maharashtra districts and their talukas
   const maharashtraDistricts = {
@@ -140,7 +144,60 @@ export default function AdminDashboard() {
     setTimeout(() => setIsRefreshing(false), 600);
   };
 
-  // Calculating Analytics
+  // Trend and Filtered Analysis Logic
+  const filteredByTime = useMemo(() => {
+    const now = new Date();
+    return issues.filter(i => {
+      const created = new Date(i.created_at);
+      if (filterTime === 'Today') return created.toDateString() === now.toDateString();
+      if (filterTime === 'Weekly') return (now - created) <= (7 * 24 * 60 * 60 * 1000);
+      if (filterTime === 'Monthly') return (now - created) <= (30 * 24 * 60 * 60 * 1000);
+      return true;
+    });
+  }, [issues, filterTime]);
+
+  const cityData = useMemo(() => {
+    const stats = {};
+    filteredByTime.forEach(i => {
+      const city = i.city || 'Other';
+      if (!stats[city]) stats[city] = { name: city, Pending: 0, "In Progress": 0, Resolved: 0, total: 0 };
+      const status = i.status || 'Pending';
+      stats[city][status] = (stats[city][status] || 0) + 1;
+      stats[city].total++;
+    });
+    return Object.values(stats).sort((a,b) => b.total - a.total).slice(0, 5); // Top 5
+  }, [filteredByTime]);
+
+  const computeImprovement = (city) => {
+    // Current period vs Previous period for this city
+    const now = new Date();
+    const periodMs = filterTime === 'Today' ? (24*60*60*1000) : (filterTime === 'Weekly' ? 7*24*60*60*1000 : 30*24*60*60*1000);
+    
+    const currIssues = issues.filter(i => {
+      const created = new Date(i.created_at);
+      return i.city === city && (now - created) <= periodMs;
+    });
+    const prevIssues = issues.filter(i => {
+      const created = new Date(i.created_at);
+      return i.city === city && (now - created) > periodMs && (now - created) <= (periodMs * 2);
+    });
+
+    if (prevIssues.length === 0) return 0;
+    
+    const currRate = currIssues.filter(i => i.status === 'Resolved').length / (currIssues.length || 1);
+    const prevRate = prevIssues.filter(i => i.status === 'Resolved').length / (prevIssues.length || 1);
+    
+    return Math.round((currRate - prevRate) * 100);
+  };
+
+  const cityRanking = useMemo(() => {
+    return Object.entries(maharashtraDistricts).map(([name]) => {
+      const cityIssues = issues.filter(i => i.city === name);
+      if (cityIssues.length === 0) return { name, score: 0, solved: 0 };
+      const rate = cityIssues.filter(i => i.status === 'Resolved').length / cityIssues.length;
+      return { name, score: Math.round(rate * 100), solved: cityIssues.filter(i => i.status === 'Resolved').length };
+    }).sort((a,b) => b.score - a.score || b.solved - a.solved).slice(0, 10);
+  }, [issues]);
   const total = issues.length;
   const pending = issues.filter(i => (!i.status || i.status === 'Pending')).length;
   const inProgress = issues.filter(i => i.status === 'In Progress').length;
@@ -167,12 +224,12 @@ export default function AdminDashboard() {
     const dMatch = filterDept === 'All' || i.department === filterDept;
     const districtMatch = filterDistrict === 'All' || i.city === filterDistrict;
     const talukaMatch = filterTaluka === 'All' || i.village === filterTaluka;
-    
+
     const search = searchTerm.toLowerCase();
-    const sMatch = !searchTerm || 
-                   (i.title?.toLowerCase().includes(search)) || 
-                   (i.complaint_id?.toLowerCase().includes(search)) ||
-                   (i.user?.email?.toLowerCase().includes(search));
+    const sMatch = !searchTerm ||
+      (i.title?.toLowerCase().includes(search)) ||
+      (i.complaint_id?.toLowerCase().includes(search)) ||
+      (i.user?.email?.toLowerCase().includes(search));
 
     return cMatch && pMatch && dMatch && districtMatch && talukaMatch && sMatch;
   });
@@ -197,59 +254,144 @@ export default function AdminDashboard() {
       {/* OVERVIEW TAB */}
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 animate-in slide-in-from-bottom-4">
+          
+          <div className="md:col-span-12 flex justify-between items-center mb-2">
+             <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
+                {['Today', 'Weekly', 'Monthly', 'All'].map(t => (
+                  <button key={t} onClick={() => setFilterTime(t)} className={`px-4 py-1 text-[10px] font-black uppercase tracking-wider rounded transition-all ${filterTime === t ? 'bg-primary text-white' : 'text-slate-500 hover:text-slate-300'}`}>{t}</button>
+                ))}
+             </div>
+             <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
+                📅 Analyzing {filterTime} Trends
+             </div>
+          </div>
 
           <div className="md:col-span-8 flex flex-col gap-8">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <div className="glass-card p-6 border-b-4 border-b-blue-500 relative overflow-hidden">
-                <div className="absolute -right-4 -bottom-4 opacity-10 text-blue-500"><svg className="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M10 20a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm-5.6-4.29a9.95 9.95 0 0 1 11.2 0 8 8 0 1 0-11.2 0zm6.12-7.64l3.02-3.02 1.41 1.41-3.02 3.02a2 2 0 1 1-1.41-1.41z" /></svg></div>
-                <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Total Complaints</h3>
-                <p className="text-5xl font-black text-white">{total}</p>
-              </div>
-              <div className="glass-card p-6 border-b-4 border-b-emerald-500 relative overflow-hidden">
-                <div className="absolute -right-4 -bottom-4 opacity-10 text-emerald-500"><svg className="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M0 11l2-2 5 5L18 3l2 2L7 18z" /></svg></div>
-                <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Resolution Rate</h3>
-                <p className="text-5xl font-black text-emerald-400">{total > 0 ? Math.round((resolved / total) * 100) : 0}%</p>
-              </div>
-              <div className="glass-card p-6 border-b-4 border-b-amber-500 relative overflow-hidden">
-                <div className="absolute -right-6 -bottom-6 opacity-10 text-amber-500"><svg className="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M10 20a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-1-7.59V4h2v5.59l3.95 3.95-1.41 1.41L9 10.41z" /></svg></div>
-                <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Avg Res Time</h3>
-                <p className="text-5xl font-black text-amber-400">{avgResTimeHours}<span className="text-lg font-bold ml-1">hrs</span></p>
-              </div>
-            </div>
+             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+               <div className="glass-card p-6 border-b-4 border-b-blue-500 relative overflow-hidden">
+                 <div className="absolute -right-4 -bottom-4 opacity-10 text-blue-500"><svg className="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M10 20a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm-5.6-4.29a9.95 9.95 0 0 1 11.2 0 8 8 0 1 0-11.2 0zm6.12-7.64l3.02-3.02 1.41 1.41-3.02 3.02a2 2 0 1 1-1.41-1.41z" /></svg></div>
+                 <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Total Complaints</h3>
+                 <p className="text-5xl font-black text-white">{total}</p>
+               </div>
+               <div className="glass-card p-6 border-b-4 border-b-emerald-500 relative overflow-hidden">
+                 <div className="absolute -right-4 -bottom-4 opacity-10 text-emerald-500"><svg className="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M0 11l2-2 5 5L18 3l2 2L7 18z" /></svg></div>
+                 <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Resolution Rate</h3>
+                 <p className="text-5xl font-black text-emerald-400">{total > 0 ? Math.round((resolved / total) * 100) : 0}%</p>
+               </div>
+               <div className="glass-card p-6 border-b-4 border-b-amber-500 relative overflow-hidden">
+                 <div className="absolute -right-6 -bottom-6 opacity-10 text-amber-500"><svg className="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M10 20a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-1-7.59V4h2v5.59l3.95 3.95-1.41 1.41L9 10.41z" /></svg></div>
+                 <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Avg Res Time</h3>
+                 <p className="text-5xl font-black text-amber-400">{avgResTimeHours}<span className="text-lg font-bold ml-1">hrs</span></p>
+               </div>
+             </div>
 
-            <div className="glass-card p-8">
-              <h3 className="text-xl font-bold mb-6 text-white">Status Breakdown</h3>
-              <div className="space-y-6">
-                <div>
-                  <div className="flex justify-between text-sm mb-2 font-bold"><span className="text-emerald-400">Resolved ({resolved})</span><span className="text-slate-400">{total > 0 ? Math.round((resolved / total) * 100) : 0}%</span></div>
-                  <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden"><div className="bg-emerald-500 h-3 rounded-full" style={{ width: `${total > 0 ? (resolved / total) * 100 : 0}%` }}></div></div>
+             {/* CITY PIPELINE - NEW FEATURE */}
+             <div className="glass-card p-6 border border-slate-700/50 bg-gradient-to-br from-slate-900 to-slate-800/50">
+                <div className="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
+                   <div>
+                      <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">🔄 City Pipeline Flow</h3>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Resource allocation and status tracking per district</p>
+                   </div>
+                   <div className="flex gap-4">
+                      <div className="text-center px-3 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                         <div className="text-[9px] text-emerald-400 font-black uppercase">Done</div>
+                         <div className="text-lg font-black text-white">{resolved}</div>
+                      </div>
+                      <div className="text-center px-3 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                         <div className="text-[9px] text-blue-400 font-black uppercase">Doing</div>
+                         <div className="text-lg font-black text-white">{inProgress}</div>
+                      </div>
+                      <div className="text-center px-3 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                         <div className="text-[9px] text-amber-400 font-black uppercase">Wait</div>
+                         <div className="text-lg font-black text-white">{pending}</div>
+                      </div>
+                   </div>
                 </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2 font-bold"><span className="text-blue-400">In Progress ({inProgress})</span><span className="text-slate-400">{total > 0 ? Math.round((inProgress / total) * 100) : 0}%</span></div>
-                  <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden"><div className="bg-blue-500 h-3 rounded-full" style={{ width: `${total > 0 ? (inProgress / total) * 100 : 0}%` }}></div></div>
+                
+                <div className="grid grid-cols-1 gap-6">
+                   {cityData.map(city => {
+                     const totalCity = city.total;
+                     const rP = (city.Resolved / totalCity) * 100;
+                     const iP = (city['In Progress'] / totalCity) * 100;
+                     const wP = (city.Pending / totalCity) * 100;
+                     
+                     return (
+                       <div key={city.name} className="space-y-2 group hover:bg-slate-800/40 p-2 rounded-xl transition-all cursor-pointer" onClick={() => {setFilterDistrict(city.name); setActiveTab('manage');}}>
+                         <div className="flex justify-between items-center">
+                           <span className="text-xs font-black text-slate-300 uppercase tracking-widest">{city.name}</span>
+                           <span className="font-mono text-[10px] text-primary">{totalCity} Incident(s)</span>
+                         </div>
+                         <div className="h-4 w-full bg-slate-800 rounded-full flex overflow-hidden border border-slate-700/50 shadow-inner">
+                           <div className="bg-emerald-500 transition-all duration-700" style={{ width: `${rP}%` }}></div>
+                           <div className="bg-blue-500 transition-all duration-700 opacity-80" style={{ width: `${iP}%` }}></div>
+                           <div className="bg-amber-500 transition-all duration-700 opacity-60" style={{ width: `${wP}%` }}></div>
+                         </div>
+                         <div className="flex justify-between text-[8px] font-black uppercase text-slate-500 tracking-tighter">
+                            <span>🟢 {Math.round(rP)}% Solved</span>
+                            <span>🔵 {Math.round(iP)}% Processing</span>
+                            <span>🟡 {Math.round(wP)}% Queued</span>
+                         </div>
+                       </div>
+                     );
+                   })}
                 </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2 font-bold"><span className="text-amber-400">Pending ({pending})</span><span className="text-slate-400">{total > 0 ? Math.round((pending / total) * 100) : 0}%</span></div>
-                  <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden"><div className="bg-amber-500 h-3 rounded-full" style={{ width: `${total > 0 ? (pending / total) * 100 : 0}%` }}></div></div>
+
+                <div className="mt-8 pt-6 border-t border-slate-800">
+                    <h4 className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">⚠️ Risk Profile Assessment</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                       {Object.entries(issues.reduce((acc, curr) => {
+                          if ((curr.priority === 'High' || curr.is_emergency) && curr.status !== 'Resolved') {
+                             acc[curr.city] = (acc[curr.city] || 0) + 1;
+                          }
+                          return acc;
+                       }, {})).sort((a,b) => b[1] - a[1]).slice(0, 3).map(([city, count]) => (
+                          <div key={city} className="bg-red-500/5 border border-red-500/10 p-3 rounded-lg flex items-center justify-between">
+                             <div>
+                                <div className="text-[11px] font-black text-red-400 uppercase">{city}</div>
+                                <div className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">Critical Backlog</div>
+                             </div>
+                             <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center font-black text-red-500 text-xs shadow-[0_0_15px_rgba(239,68,68,0.2)] animate-pulse">{count}</div>
+                          </div>
+                       ))}
+                    </div>
                 </div>
-              </div>
-            </div>
+             </div>
           </div>
 
           <div className="md:col-span-4 flex flex-col gap-8">
-            <div className="glass-card p-6 h-full border border-slate-700/50 flex flex-col">
-              <h3 className="text-lg font-bold mb-6 text-white flex items-center gap-2">📂 Category Stats</h3>
-              <div className="flex-1 flex flex-col gap-4">
-                {Object.entries(cats).sort((a, b) => b[1] - a[1]).map(([cat, count]) => (
-                  <div key={cat} className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-center justify-between shadow-inner">
-                    <span className="uppercase tracking-widest text-xs font-bold text-slate-300">{cat}</span>
-                    <span className="bg-primary/20 text-primary font-black px-3 py-1 rounded-lg">{count}</span>
-                  </div>
-                ))}
-                {Object.keys(cats).length === 0 && <p className="text-slate-500 text-sm text-center my-auto">No categories recorded yet.</p>}
-              </div>
-            </div>
+             {/* CITY RANKING & TRENDS */}
+             <div className="glass-card p-6 border border-slate-700/50 flex flex-col h-full rounded-2xl bg-slate-900/40">
+                <div className="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
+                   <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">🏅 City Rankings</h3>
+                </div>
+                <div className="flex-1 space-y-4 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
+                   {cityRanking.map((city, idx) => {
+                      const improvement = computeImprovement(city.name);
+                      return (
+                         <div key={city.name} className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex items-center justify-between group hover:border-primary/50 transition-all cursor-pointer" onClick={() => {setFilterDistrict(city.name); setActiveTab('manage'); }}>
+                            <div className="flex items-center gap-3">
+                               <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${idx === 0 ? 'bg-amber-500 text-black' : (idx === 1 ? 'bg-slate-300 text-black' : (idx === 2 ? 'bg-orange-800 text-white' : 'bg-slate-800 text-slate-500'))}`}>{idx+1}</span>
+                               <div>
+                                  <div className="text-[11px] font-black text-white uppercase tracking-widest">{city.name}</div>
+                                  <div className="text-[9px] text-slate-500 font-bold uppercase">{city.solved} Resolved</div>
+                               </div>
+                            </div>
+                            <div className="text-right">
+                               <div className="text-sm font-black text-primary">{city.score}% Score</div>
+                               {improvement !== 0 && (
+                                  <div className={`text-[9px] font-black uppercase flex items-center gap-1 justify-end mt-1 ${improvement > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                     {improvement > 0 ? '↗' : '↘'} {Math.abs(improvement)}% {filterTime} Trend
+                                  </div>
+                                )}
+                            </div>
+                         </div>
+                      );
+                   })}
+                   {cityRanking.length === 0 && <p className="text-slate-600 text-xs italic text-center py-20 uppercase font-black tracking-widest opacity-50">Synchronizing Regional Datasets...</p>}
+                </div>
+             </div>
           </div>
+
         </div>
       )}
 
@@ -259,61 +401,61 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Department Rankings */}
             <div className="glass-card p-8 border border-indigo-500/30 bg-gradient-to-br from-slate-900 to-indigo-950/20 shadow-2xl">
-               <div className="flex justify-between items-center mb-6">
-                 <h3 className="text-xl font-black text-white flex items-center gap-2">🏆 Dept Performance score</h3>
-                 <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Ranked by Resolution & Speed</span>
-               </div>
-               <div className="space-y-4">
-                  {performances.map((dept, idx) => (
-                    <div key={idx} className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-center justify-between group hover:border-indigo-500/50 transition-all">
-                      <div className="flex items-center gap-4">
-                         <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${idx === 0 ? 'bg-amber-500 text-black' : 'bg-slate-800 text-slate-400'}`}>{idx+1}</span>
-                         <div>
-                            <div className="text-sm font-black text-white uppercase tracking-widest group-hover:text-primary transition-colors">{dept.department}</div>
-                            <div className="text-[10px] text-slate-500 font-bold uppercase">Avg Speed: <span className="text-emerald-400 font-black">{dept.avgSpeedHrs}h</span> | Resolved: <span className="text-blue-400 font-black">{dept.resolved}</span></div>
-                         </div>
-                      </div>
-                      <div className="text-right">
-                         <div className="text-2xl font-black text-primary">{dept.score}<span className="text-[10px]"> pts</span></div>
-                         {dept.delayed > 0 && <div className="text-[9px] text-red-500 font-black uppercase tracking-tighter animate-pulse flex items-center gap-1 justify-end"><span>🚨 {dept.delayed} OVERDUE</span></div>}
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-black text-white flex items-center gap-2">🏆 Dept Performance score</h3>
+                <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Ranked by Resolution & Speed</span>
+              </div>
+              <div className="space-y-4">
+                {performances.map((dept, idx) => (
+                  <div key={idx} className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-center justify-between group hover:border-indigo-500/50 transition-all">
+                    <div className="flex items-center gap-4">
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${idx === 0 ? 'bg-amber-500 text-black' : 'bg-slate-800 text-slate-400'}`}>{idx + 1}</span>
+                      <div>
+                        <div className="text-sm font-black text-white uppercase tracking-widest group-hover:text-primary transition-colors">{dept.department}</div>
+                        <div className="text-[10px] text-slate-500 font-bold uppercase">Avg Speed: <span className="text-emerald-400 font-black">{dept.avgSpeedHrs}h</span> | Resolved: <span className="text-blue-400 font-black">{dept.resolved}</span></div>
                       </div>
                     </div>
-                  ))}
-                  {performances.length === 0 && <p className="text-slate-500 text-center py-10 font-medium italic">No performance metrics generated yet.</p>}
-               </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-black text-primary">{dept.score}<span className="text-[10px]"> pts</span></div>
+                      {dept.delayed > 0 && <div className="text-[9px] text-red-500 font-black uppercase tracking-tighter animate-pulse flex items-center gap-1 justify-end"><span>🚨 {dept.delayed} OVERDUE</span></div>}
+                    </div>
+                  </div>
+                ))}
+                {performances.length === 0 && <p className="text-slate-500 text-center py-10 font-medium italic">No performance metrics generated yet.</p>}
+              </div>
             </div>
 
             {/* Predictive Mapping */}
             <div className="glass-card p-8 border border-emerald-500/30 bg-gradient-to-br from-slate-900 to-emerald-950/10 shadow-2xl">
-               <div className="flex justify-between items-center mb-6">
-                 <h3 className="text-xl font-black text-white flex items-center gap-2">📍 Predictive Hotspots</h3>
-                 <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest animate-pulse">AI Engine Live</span>
-               </div>
-               <div className="space-y-4">
-                  {predictions.map((pred, idx) => (
-                    <div key={idx} className="bg-slate-900/50 p-5 rounded-xl border border-emerald-500/10 border-l-4 border-l-emerald-500 relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-20 transition-opacity">
-                         <svg className="w-16 h-16 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12 7a1 1 0 110-2h5V2a1 1 0 112 0v5a1 1 0 01-1 1h-6z" clipRule="evenodd" /><path d="M16.293 9.293a1 1 0 011.414 1.414l-9 9a1 1 0 01-1.414 0l-5-5a1 1 0 011.414-1.414L7 17.586l8.293-8.293z" /></svg>
-                      </div>
-                      <div className="flex justify-between items-start mb-3">
-                        <span className="text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20">{pred.category} Risk</span>
-                        <div className="flex flex-col items-end">
-                           <span className="text-[9px] font-black text-emerald-500 uppercase tracking-tighter">Likelihood: {pred.likelihood}</span>
-                           <div className="w-16 h-1 bg-slate-800 rounded-full mt-1"><div className="bg-emerald-500 h-full rounded-full" style={{width: '90%'}}></div></div>
-                        </div>
-                      </div>
-                      <p className="text-sm text-slate-200 leading-relaxed font-bold mb-4">{pred.note}</p>
-                      <div className="flex items-center justify-between border-t border-slate-800 pt-3">
-                        <div className="flex items-center gap-2 text-[10px] text-slate-500 font-black uppercase tracking-widest">
-                          <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                          COORD: {pred.grid}
-                        </div>
-                        <span className="text-[10px] text-slate-400 font-black uppercase tracking-tighter bg-slate-800 px-2 py-1 rounded">Exp: {pred.dow}</span>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-black text-white flex items-center gap-2">📍 Predictive Hotspots</h3>
+                <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest animate-pulse">AI Engine Live</span>
+              </div>
+              <div className="space-y-4">
+                {predictions.map((pred, idx) => (
+                  <div key={idx} className="bg-slate-900/50 p-5 rounded-xl border border-emerald-500/10 border-l-4 border-l-emerald-500 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-20 transition-opacity">
+                      <svg className="w-16 h-16 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12 7a1 1 0 110-2h5V2a1 1 0 112 0v5a1 1 0 01-1 1h-6z" clipRule="evenodd" /><path d="M16.293 9.293a1 1 0 011.414 1.414l-9 9a1 1 0 01-1.414 0l-5-5a1 1 0 011.414-1.414L7 17.586l8.293-8.293z" /></svg>
+                    </div>
+                    <div className="flex justify-between items-start mb-3">
+                      <span className="text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20">{pred.category} Risk</span>
+                      <div className="flex flex-col items-end">
+                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-tighter">Likelihood: {pred.likelihood}</span>
+                        <div className="w-16 h-1 bg-slate-800 rounded-full mt-1"><div className="bg-emerald-500 h-full rounded-full" style={{ width: '90%' }}></div></div>
                       </div>
                     </div>
-                  ))}
-                  {predictions.length === 0 && <div className="text-center p-12 text-slate-600 font-black uppercase tracking-widest italic opacity-50">Gathering historical dataset for predictive modeling...</div>}
-               </div>
+                    <p className="text-sm text-slate-200 leading-relaxed font-bold mb-4">{pred.note}</p>
+                    <div className="flex items-center justify-between border-t border-slate-800 pt-3">
+                      <div className="flex items-center gap-2 text-[10px] text-slate-500 font-black uppercase tracking-widest">
+                        <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        COORD: {pred.grid}
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-black uppercase tracking-tighter bg-slate-800 px-2 py-1 rounded">Exp: {pred.dow}</span>
+                    </div>
+                  </div>
+                ))}
+                {predictions.length === 0 && <div className="text-center p-12 text-slate-600 font-black uppercase tracking-widest italic opacity-50">Gathering historical dataset for predictive modeling...</div>}
+              </div>
             </div>
           </div>
         </div>
@@ -329,6 +471,17 @@ export default function AdminDashboard() {
               <span className="flex items-center gap-3 text-amber-400"><div className="w-4 h-4 rounded-full bg-amber-500/80 border-2 border-amber-400"></div> Normal</span>
               <span className="flex items-center gap-3 text-emerald-400"><div className="w-4 h-4 rounded-full bg-emerald-500/80 border-2 border-emerald-400"></div> Resolved</span>
             </div>
+            {mapView === 'issues' && (
+              <div className="flex flex-col gap-2 text-[10px] font-bold tracking-widest uppercase mb-4">
+                <span className="flex items-center gap-3 text-red-400"><div className="w-3 h-3 rounded-full bg-red-500/80 border border-red-400"></div> High Risk</span>
+                <span className="flex items-center gap-3 text-amber-400"><div className="w-3 h-3 rounded-full bg-amber-500/80 border border-amber-400"></div> Pending</span>
+                <span className="flex items-center gap-3 text-emerald-400"><div className="w-3 h-3 rounded-full bg-emerald-500/80 border border-emerald-400"></div> Resolved</span>
+              </div>
+            )}
+            <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700 pointer-events-auto">
+               <button onClick={() => setMapView('issues')} className={`flex-1 px-4 py-1 text-[9px] font-black uppercase tracking-wider rounded transition-all ${mapView === 'issues' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>📍 Pins</button>
+               <button onClick={() => setMapView('city')} className={`flex-1 px-4 py-1 text-[9px] font-black uppercase tracking-wider rounded transition-all ${mapView === 'city' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>🏢 Cities</button>
+            </div>
           </div>
 
           <MapContainer center={[20.5937, 78.9629]} zoom={5} style={{ height: '100%', width: '100%', background: '#0f172a' }}>
@@ -336,11 +489,11 @@ export default function AdminDashboard() {
               attribution="&copy; Google Maps"
               url="https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}"
             />
-            {issues.filter(i => i.lat && i.lng).map(issue => {
-              let color = '#f59e0b'; // Amber (Normal / Pending)
-              if (issue.status === 'Resolved') color = '#10b981'; // Green
-              else if (issue.priority === 'High') color = '#ef4444'; // Red
-              else if (issue.priority === 'Low') color = '#3b82f6'; // Blue
+            {mapView === 'issues' && issues.filter(i => i.lat && i.lng).map(issue => {
+              let color = '#f59e0b';
+              if (issue.status === 'Resolved') color = '#10b981';
+              else if (issue.priority === 'High') color = '#ef4444';
+              else if (issue.priority === 'Low') color = '#3b82f6';
 
               return (
                 <CircleMarker
@@ -359,6 +512,59 @@ export default function AdminDashboard() {
                 </CircleMarker>
               );
             })}
+
+            {mapView === 'city' && Object.entries(districtCoords).map(([city, coords]) => {
+              const cityIssues = issues.filter(i => i.city === city);
+              if (cityIssues.length === 0) return null;
+              
+              const resolvedCount = cityIssues.filter(i => i.status === 'Resolved').length;
+              const pendingCount = cityIssues.filter(i => i.status === 'Pending' || !i.status).length;
+              const inProgressCount = cityIssues.filter(i => i.status === 'In Progress').length;
+              const highPriorityCount = cityIssues.filter(i => i.priority === 'High' && i.status !== 'Resolved').length;
+
+              return (
+                <CircleMarker
+                  key={city}
+                  center={coords}
+                  pathOptions={{ color: '#6366f1', fillColor: '#6366f1', fillOpacity: 0.4, weight: 2 }}
+                  radius={Math.min(25, 10 + cityIssues.length / 2)}
+                >
+                  <Tooltip permanent direction="top" className="custom-tooltip-lite" offset={[0, -10]}>
+                    <div className="font-black text-[10px] uppercase">{city}</div>
+                  </Tooltip>
+                  <Popup className="custom-popup">
+                    <div className="p-3 w-48">
+                      <h4 className="font-black text-slate-900 uppercase border-b pb-2 mb-3 tracking-widest text-xs">{city} INFRA SCAN</h4>
+                      <div className="space-y-2">
+                         <div className="flex justify-between items-center bg-slate-100 p-2 rounded">
+                            <span className="text-[9px] font-black text-slate-500 uppercase">Total Files</span>
+                            <span className="text-sm font-black text-slate-900">{cityIssues.length}</span>
+                         </div>
+                         <div className="flex justify-between items-center">
+                            <span className="text-[9px] font-bold text-emerald-600 uppercase">Resolved</span>
+                            <span className="text-xs font-black">{resolvedCount}</span>
+                         </div>
+                         <div className="flex justify-between items-center">
+                            <span className="text-[9px] font-bold text-blue-600 uppercase">Doing</span>
+                            <span className="text-xs font-black">{inProgressCount}</span>
+                         </div>
+                         <div className="flex justify-between items-center">
+                            <span className="text-[9px] font-bold text-amber-600 uppercase">Waiting</span>
+                            <span className="text-xs font-black">{pendingCount}</span>
+                         </div>
+                         {highPriorityCount > 0 && (
+                           <div className="mt-3 bg-red-100 p-2 rounded flex items-center justify-between border border-red-200">
+                             <span className="text-[9px] font-black text-red-600 uppercase">🚨 Critical Risks</span>
+                             <span className="text-xs font-black text-red-600">{highPriorityCount}</span>
+                           </div>
+                         )}
+                      </div>
+                      <button onClick={() => {setFilterDistrict(city); setActiveTab('manage');}} className="w-full mt-4 bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest py-2 rounded hover:bg-slate-800 transition-colors">Inspect Unit ➔</button>
+                    </div>
+                  </Popup>
+                </CircleMarker>
+              );
+            })}
           </MapContainer>
         </div>
       )}
@@ -366,79 +572,79 @@ export default function AdminDashboard() {
       {/* MANAGE TAB */}
       {activeTab === 'manage' && (
         <div className="glass-card overflow-hidden border border-slate-700/50 animate-in slide-in-from-bottom-4 shadow-2xl">
-  
-            <div className="bg-slate-900/50 p-6 border-b border-slate-700 space-y-4">
-              <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                <div className="relative flex-1 w-full">
-                    <input 
-                        type="text"
-                        placeholder="Search by ID, User, or Title..."
-                        className="input-field pl-10 py-2.5 text-sm"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    <svg className="w-4 h-4 absolute left-3 top-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </div>
-                <button 
-                    onClick={handleSync}
-                    disabled={isRefreshing}
-                    className="btn px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-black uppercase tracking-widest flex items-center gap-2"
-                >
-                    <svg className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                    {isRefreshing ? 'Syncing...' : 'Sync Live Data'}
-                </button>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-7 gap-4 pt-2">
-                <div>
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Filter Category</label>
-                  <select className="input-field py-1.5 text-sm" value={filterCat} onChange={e => setFilterCat(e.target.value)}>
-                    <option value="All">All Categories</option>
-                    {Object.keys(cats).map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Filter Priority</label>
-                  <select className="input-field py-1.5 text-sm" value={filterPri} onChange={e => setFilterPri(e.target.value)}>
-                    <option value="All">All Priorities</option>
-                    <option value="High">High</option>
-                    <option value="Normal">Normal</option>
-                    <option value="Low">Low</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Dept Assignment</label>
-                  <select className="input-field py-1.5 text-sm" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-                    <option value="All">All Departments</option>
-                    <option value="Unassigned">Unassigned</option>
-                    <option value="Roads & Transport">Roads & Transport</option>
-                    <option value="Sanitation">Sanitation</option>
-                    <option value="Water Supply">Water Supply</option>
-                    <option value="Electrical">Electrical</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Filter District</label>
-                  <select className="input-field py-1.5 text-sm" value={filterDistrict} onChange={e => {
-                    setFilterDistrict(e.target.value);
-                    setFilterTaluka('All'); // Reset taluka when district changes
-                  }}>
-                    <option value="All">All Districts</option>
-                    {availableDistricts.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Filter Taluka</label>
-                  <select className="input-field py-1.5 text-sm" value={filterTaluka} onChange={e => setFilterTaluka(e.target.value)}>
-                    <option value="All">All Talukas</option>
-                    {availableTalukas.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div className="flex items-end text-sm text-slate-400 font-bold justify-end pb-2">
-                  <span className="text-primary mr-1">{filteredIssues.length}</span> matching records
-                </div>
+          <div className="bg-slate-900/50 p-6 border-b border-slate-700 space-y-4">
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div className="relative flex-1 w-full">
+                <input
+                  type="text"
+                  placeholder="Search by ID, User, or Title..."
+                  className="input-field pl-10 py-2.5 text-sm"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <svg className="w-4 h-4 absolute left-3 top-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              </div>
+              <button
+                onClick={handleSync}
+                disabled={isRefreshing}
+                className="btn px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-black uppercase tracking-widest flex items-center gap-2"
+              >
+                <svg className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                {isRefreshing ? 'Syncing...' : 'Sync Live Data'}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-7 gap-4 pt-2">
+              <div>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Filter Category</label>
+                <select className="input-field py-1.5 text-sm" value={filterCat} onChange={e => setFilterCat(e.target.value)}>
+                  <option value="All">All Categories</option>
+                  {Object.keys(cats).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Filter Priority</label>
+                <select className="input-field py-1.5 text-sm" value={filterPri} onChange={e => setFilterPri(e.target.value)}>
+                  <option value="All">All Priorities</option>
+                  <option value="High">High</option>
+                  <option value="Normal">Normal</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Dept Assignment</label>
+                <select className="input-field py-1.5 text-sm" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
+                  <option value="All">All Departments</option>
+                  <option value="Unassigned">Unassigned</option>
+                  <option value="Roads & Transport">Roads & Transport</option>
+                  <option value="Sanitation">Sanitation</option>
+                  <option value="Water Supply">Water Supply</option>
+                  <option value="Electrical">Electrical</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Filter District</label>
+                <select className="input-field py-1.5 text-sm" value={filterDistrict} onChange={e => {
+                  setFilterDistrict(e.target.value);
+                  setFilterTaluka('All'); // Reset taluka when district changes
+                }}>
+                  <option value="All">All Districts</option>
+                  {availableDistricts.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Filter Taluka</label>
+                <select className="input-field py-1.5 text-sm" value={filterTaluka} onChange={e => setFilterTaluka(e.target.value)}>
+                  <option value="All">All Talukas</option>
+                  {availableTalukas.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="flex items-end text-sm text-slate-400 font-bold justify-end pb-2">
+                <span className="text-primary mr-1">{filteredIssues.length}</span> matching records
               </div>
             </div>
+          </div>
 
           <div className="overflow-x-auto min-h-[400px]">
             <table className="w-full text-left">
@@ -482,10 +688,10 @@ export default function AdminDashboard() {
                             if (expandedIssue === issue.id) setExpandedIssue(null);
                             else {
                               setExpandedIssue(issue.id);
-                              setEditFormData({ 
-                                status: issue.status || 'Pending', 
-                                priority: issue.priority || 'Normal', 
-                                department: issue.department || 'Unassigned', 
+                              setEditFormData({
+                                status: issue.status || 'Pending',
+                                priority: issue.priority || 'Normal',
+                                department: issue.department || 'Unassigned',
                                 remarks: issue.admin_remarks || '',
                                 resolution_media_url: issue.resolution_media_url || ''
                               });
@@ -515,7 +721,7 @@ export default function AdminDashboard() {
                                 ) : (
                                   <div className="bg-slate-800 p-4 rounded-lg border border-dashed border-slate-700 text-center text-[10px] text-slate-500 font-bold uppercase py-10">No Photo Attached</div>
                                 )}
-                                
+
                                 {issue.resolution_media_url && (
                                   <div className="rounded-lg overflow-hidden border border-emerald-500/30">
                                     <img src={issue.resolution_media_url} className="w-full h-32 object-cover" alt="Resolution" />
@@ -559,26 +765,26 @@ export default function AdminDashboard() {
                               {(editFormData.status === 'Resolved' || editFormData.status === 'In Progress') && (
                                 <div className="space-y-3">
                                   <label className="text-[10px] text-emerald-400 uppercase tracking-widest font-black block mb-1">Official Resolution Evidence</label>
-                                  
+
                                   <div className="flex gap-2">
-                                    <input 
-                                      className="flex-1 input-field py-1.5 text-xs bg-emerald-500/5 border-emerald-500/20" 
-                                      placeholder="https://image-url.com" 
+                                    <input
+                                      className="flex-1 input-field py-1.5 text-xs bg-emerald-500/5 border-emerald-500/20"
+                                      placeholder="https://image-url.com"
                                       value={editFormData.resolution_media_url}
-                                      onChange={e => setEditFormData({...editFormData, resolution_media_url: e.target.value})}
+                                      onChange={e => setEditFormData({ ...editFormData, resolution_media_url: e.target.value })}
                                     />
                                     <label className="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black uppercase px-4 py-2 rounded-lg cursor-pointer transition-colors flex items-center gap-2">
                                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                                       <span>Upload</span>
-                                      <input 
-                                        type="file" 
-                                        className="hidden" 
+                                      <input
+                                        type="file"
+                                        className="hidden"
                                         accept="image/*"
                                         onChange={(e) => {
                                           const file = e.target.files[0];
                                           if (file) {
                                             const reader = new FileReader();
-                                            reader.onloadend = () => setEditFormData({...editFormData, resolution_media_url: reader.result});
+                                            reader.onloadend = () => setEditFormData({ ...editFormData, resolution_media_url: reader.result });
                                             reader.readAsDataURL(file);
                                           }
                                         }}

@@ -202,12 +202,10 @@ const sendStatusUpdateEmail = async (email, complaintId, title, newStatus, remar
                             <td style="padding-bottom: 12px; font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Reported On</td>
                             <td style="padding-bottom: 12px; font-size: 13px; color: #475569;">${reportDate}</td>
                         </tr>
-                        ${resolvedDate ? `
                         <tr>
-                            <td style="padding-bottom: 0px; font-size: 11px; font-weight: 800; color: #10b981; text-transform: uppercase;">Resolved On</td>
-                            <td style="padding-bottom: 0px; font-size: 13px; font-weight: 700; color: #059669;">${resolvedDate}</td>
+                            <td style="padding-bottom: 0px; font-size: 11px; font-weight: 800; color: ${isResolved ? '#10b981' : '#94a3b8'}; text-transform: uppercase;">Resolved On</td>
+                            <td style="padding-bottom: 0px; font-size: 13px; font-weight: 700; color: ${isResolved ? '#059669' : '#475569'};">${resolvedDate || '—'}</td>
                         </tr>
-                        ` : ''}
                     </table>
                 </div>
 
@@ -267,4 +265,93 @@ const sendStatusUpdateEmail = async (email, complaintId, title, newStatus, remar
     console.log(`\n📧 [Email Status Mock] To: ${email} | ID: ${complaintId} | Status: ${newStatus}\n`);
 };
 
-module.exports = { generateOTP, sendEmailOTP, sendSmsOTP, sendStatusUpdateEmail };
+/**
+ * Sends Rich Complaint Registration Confirmation to Citizen
+ */
+const sendComplaintRegistrationEmail = async (email, complaintId, title, category, userName = "Citizen", reportDate = "Recently") => {
+    const subject = `📥 Complaint Registered: ${complaintId} - CivicConnect`;
+    
+    const html = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 550px; padding: 0; border: 1px solid #e2e8f0; border-radius: 16px; background: #ffffff; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            <div style="background: #4f46e5; padding: 30px; text-align: center;">
+                <div style="color: #ffffff; font-size: 28px; font-weight: 900; letter-spacing: -1px; margin-bottom: 5px;">CivicConnect</div>
+                <div style="color: rgba(255,255,255,0.7); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;">Issue Received & Logged</div>
+            </div>
+
+            <div style="padding: 35px;">
+                <p style="color: #1e293b; font-size: 18px; font-weight: 700; margin-top: 0;">Hello ${userName},</p>
+                <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin-bottom: 25px;">Your civic report has been successfully registered in our central database. Our municipal team has been notified and will prioritize it according to community impact.</p>
+                
+                <div style="background: #f8fafc; border-radius: 14px; padding: 25px; border: 1px solid #f1f5f9; margin-bottom: 25px;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding-bottom: 12px; width: 40%; font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Ticket ID</td>
+                            <td style="padding-bottom: 12px; font-size: 14px; font-weight: 900; color: #4f46e5;">#${complaintId}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding-bottom: 12px; width: 40%; font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Issue Title</td>
+                            <td style="padding-bottom: 12px; font-size: 14px; font-weight: 700; color: #1e293b;">${title}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding-bottom: 12px; font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Category</td>
+                            <td style="padding-bottom: 12px;">
+                                <span style="background: #e0e7ff; color: #3730a3; font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 20px; text-transform: uppercase;">${category}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding-bottom: 0px; font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Logged On</td>
+                            <td style="padding-bottom: 0px; font-size: 13px; color: #475569;">${reportDate}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div style="padding: 20px; border-left: 4px solid #10b981; background: #fdfdfd; border-radius: 0 8px 8px 0; margin-bottom: 30px;">
+                    <p style="margin: 0; font-size: 11px; color: #059669; text-transform: uppercase; font-weight: 800; margin-bottom: 8px;">🚀 Next Steps</p>
+                    <ul style="margin: 0; padding-left: 15px; font-size: 13px; color: #334155; line-height: 1.6;">
+                        <li>Our system has calculated the initial <b>priority</b>.</li>
+                        <li>An Official from the <b>relevant department</b> will verify the location.</li>
+                        <li>You will receive an <b>Email & SMS</b> if the status changes.</li>
+                    </ul>
+                </div>
+
+                <div style="text-align: center; border-t: 1px solid #f1f5f9; padding-top: 30px;">
+                    <p style="color: #94a3b8; font-size: 12px; font-style: italic; margin-bottom: 0;">"Small reporting, Big impact." Thank you for caring!</p>
+                </div>
+            </div>
+            
+            <div style="background: #f8fafc; padding: 20px; text-align: center; border-t: 1px solid #f1f5f9;">
+                <p style="color: #cbd5e1; font-size: 10px; margin: 0; text-transform: uppercase; font-weight: 700;">© 2026 CivicConnect Municipality Services</p>
+            </div>
+        </div>
+    `;
+
+    if (emailTransporter) {
+        try {
+            await emailTransporter.sendMail({ from: `"CivicConnect" <${EMAIL_USER || 'no-reply@civic.gov'}>`, to: email, subject, html });
+            return;
+        } catch (e) { console.error("Registration email failed:", e.message); }
+    }
+
+    if (BREVO_API_KEY) {
+        const data = JSON.stringify({
+            sender: { name: "CivicConnect", email: EMAIL_USER || "no-reply@civic.gov" },
+            to: [{ email }],
+            subject,
+            htmlContent: html
+        });
+        const options = {
+            hostname: 'api.brevo.com',
+            port: 443,
+            path: '/v3/smtp/email',
+            method: 'POST',
+            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'api-key': BREVO_API_KEY }
+        };
+        const req = https.request(options, (res) => {});
+        req.write(data); req.end();
+        return;
+    }
+
+    console.log(`\n📧 [Registration Mock] To: ${email} | ID: ${complaintId}\n`);
+};
+
+module.exports = { generateOTP, sendEmailOTP, sendSmsOTP, sendStatusUpdateEmail, sendComplaintRegistrationEmail };

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import { maharashtraDistricts } from './constants';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import IssueTracker from './IssueTracker';
@@ -20,60 +21,118 @@ L.Icon.Default.mergeOptions({
 const defaultCenter = [20.5937, 78.9629]; // India geographic center
 
 // Maharashtra districts and their talukas
-const maharashtraDistricts = {
-  'Ahmednagar': ['Ahmednagar', 'Akole', 'Jamkhed', 'Karjat', 'Kopargaon', 'Nevasa', 'Parner', 'Pathardi', 'Rahata', 'Rahuri', 'Sangamner', 'Shevgaon', 'Shrigonda', 'Shrirampur'],
-  'Akola': ['Akola', 'Akot', 'Balapur', 'Barshitakli', 'Murtijapur', 'Patur', 'Telhara'],
-  'Amravati': ['Achawal', 'Amravati', 'Anjangaon Surji', 'Bhatkuli', 'Chandur Bazar', 'Chandur Railway', 'Chikhaldara', 'Daryapur', 'Dhamangaon Railway', 'Dharni', 'Morshi', 'Nandgaon Khandeshwar', 'Teosa', 'Warud'],
-  'Aurangabad': ['Aurangabad', 'Gangapur', 'Kannad', 'Khuldabad', 'Paithan', 'Phulambri', 'Sillod', 'Soegaon', 'Vaijapur'],
-  'Beed': ['Ambejogai', 'Ashti', 'Bid', 'Dharur', 'Georai', 'Kaij', 'Manjlegaon', 'Parli', 'Patoda', 'Shirur', 'Wadwani'],
-  'Bhandara': ['Bhandara', 'Lakhandur', 'Lakhani', 'Mohadi', 'Pauni', 'Sakoli', 'Tumsar'],
-  'Buldhana': ['Buldhana', 'Chikhli', 'Deulgaon Raja', 'Jalgaon Jamod', 'Khamgaon', 'Lonar', 'Malkapur', 'Mehkar', 'Motala', 'Nandura', 'Sangrampur', 'Shegaon', 'Sindkhed Raja'],
-  'Chandrapur': ['Ballarpur', 'Bhadravati', 'Brahmapuri', 'Chandrapur', 'Chimur', 'Gondpipri', 'Jiwati', 'Korpana', 'Mul', 'Nagbhid', 'Pombhurna', 'Rajura', 'Sawali', 'Sindewahi', 'Warora'],
-  'Dhule': ['Dhule', 'Malegaon', 'Sakri', 'Shirpur', 'Sindkhede'],
-  'Gadchiroli': ['Aheri', 'Armori', 'Bhamragad', 'Chamorshi', 'Desaiganj', 'Dhanora', 'Etapalli', 'Gadchiroli', 'Kurkheda', 'Mulchera', 'Sironcha', 'Wadsa'],
-  'Gondia': ['Amgaon', 'Arjuni Morgaon', 'Deori', 'Gondia', 'Goregaon', 'Sadak Arjuni', 'Salekasa', 'Tirora'],
-  'Hingoli': ['Aundha', 'Basmath', 'Hingoli', 'Kalamnuri', 'Sengaon'],
-  'Jalgaon': ['Amalner', 'Bhadgaon', 'Bhusawal', 'Bodwad', 'Chalisgaon', 'Chopda', 'Dharangaon', 'Erandol', 'Jalgaon', 'Jamner', 'Muktainagar', 'Pachora', 'Parola', 'Raver', 'Yawal'],
-  'Jalna': ['Ambad', 'Badnapur', 'Bhokardan', 'Ghansawangi', 'Jafferabad', 'Jalna', 'Mantha', 'Partur'],
-  'Kolhapur': ['Ajra', 'Bavda', 'Bhudargad', 'Chandgad', 'Gadhinglaj', 'Hatkanangale', 'Kagal', 'Karvir', 'Kolhapur', 'Panhala', 'Radhanagari', 'Shahuwadi', 'Shirol'],
-  'Latur': ['Ahmadpur', 'Ausa', 'Chakur', 'Deoni', 'Jalkot', 'Latur', 'Nilanga', 'Renapur', 'Shirur Anantpal', 'Udgir'],
-  'Mumbai City': ['Area not divided into Talukas'],
-  'Mumbai Suburban': ['Andheri', 'Borivali', 'Kurla'],
-  'Nagpur': ['Bhiwapur', 'Hingna', 'Kalameshwar', 'Kamthi', 'Kuhi', 'Mauda', 'Nagpur Rural', 'Nagpur Urban', 'Narkhed', 'Parseoni', 'Ramtek', 'Savner', 'Umred'],
-  'Nanded': ['Ardhapur', 'Bhokar', 'Biloli', 'Deglur', 'Dharmabad', 'Hadgaon', 'Himayatnagar', 'Kandhar', 'Kinwat', 'Loha', 'Mahur', 'Mudkhed', 'Mukhed', 'Naigaon', 'Nanded', 'Umri'],
-  'Nandurbar': ['Akkalkuwa', 'Akrani', 'Nandurbar', 'Navapur', 'Shahade', 'Talode'],
-  'Nashik': ['Baglan', 'Chandvad', 'Deola', 'Dindori', 'Igatpuri', 'Kalwan', 'Malegaon', 'Nandgaon', 'Nashik', 'Niphad', 'Peint', 'Sinnar', 'Sula', 'Surgeana', 'Trimbakeshwar', 'Yevla'],
-  'Osmanabad': ['Bhum', 'Kalamb', 'Lohara', 'Osmanabad', 'Paranda', 'Tuljapur', 'Umarga', 'Washi'],
-  'Palghar': ['Dahanu', 'Jawhar', 'Mokhada', 'Palghar', 'Talasari', 'Vasai', 'Vikramgad'],
-  'Parbhani': ['Gangakhed', 'Jintur', 'Manwath', 'Palam', 'Parbhani', 'Pathri', 'Purna', 'Sailu', 'Sonpeth'],
-  'Pune': ['Ambegaon', 'Baramati', 'Bhor', 'Daund', 'Haveli', 'Indapur', 'Junnar', 'Khed', 'Mawal', 'Mulshi', 'Pune City', 'Purandhar', 'Shirur', 'Velhe'],
-  'Raigad': ['Alibag', 'Karjat', 'Khalapur', 'Mahad', 'Mangaon', 'Mhasla', 'Murud', 'Panvel', 'Pen', 'Poladpur', 'Roha', 'Shrivardhan', 'Sudhagad', 'Tala', 'Uran'],
-  'Ratnagiri': ['Chiplun', 'Dapoli', 'Guhagar', 'Khed', 'Lanja', 'Mandangad', 'Rajapur', 'Ratnagiri', 'Sangameshwar'],
-  'Sangli': ['Atpadi', 'Jat', 'Kadegaon', 'Kavathe Mahankal', 'Khanapur', 'Miraj', 'Palus', 'Sangli', 'Shirala', 'Tasgaon', 'Walwa'],
-  'Satara': ['Jaoli', 'Karad', 'Khandala', 'Khatav', 'Koregaon', 'Mahabaleshwar', 'Man', 'Patan', 'Phaltan', 'Satara', 'Wai'],
-  'Sindhudurg': ['Devgad', 'Dodamarg', 'Kankavli', 'Kudal', 'Malwan', 'Sawantwadi', 'Vaibhavwadi', 'Vengurla'],
-  'Solapur': ['Akkalkot', 'Barshi', 'Karmala', 'Madha', 'Malshiras', 'Mangalvedhe', 'Mohol', 'Pandharpur', 'Sangole', 'Solapur North', 'Solapur South'],
-  'Thane': ['Ambarnath', 'Bhiwandi', 'Kalyan', 'Murbad', 'Shahapur', 'Thane', 'Ulhasnagar'],
-  'Wardha': ['Arvi', 'Ashti', 'Deoli', 'Hinganghat', 'Karanja', 'Samudrapur', 'Seloo', 'Wardha'],
-  'Washim': ['Karanja', 'Malegaon', 'Mangrulpir', 'Manora', 'Risod', 'Washim'],
-  'Yavatmal': ['Arni', 'Babulgaon', 'Darwha', 'Digras', 'Ghatanji', 'Kalamb', 'Kelapur', 'Lohara', 'Mahagaon', 'Maregaon', 'Ner', 'Pusad', 'Ralegaon', 'Umarkhed', 'Wani', 'Yavatmal', 'Zari Jamni']
-};
+// Maharashtra districts and their talukas are now imported from constants.js
 
-// Component to handle map clicks
+// Component to handle map clicks with BOUNDARY ENFORCEMENT
 function LocationSelector({ formData, setFormData }) {
+  const map = useMap();
+
   useMapEvents({
-    click(e) {
-      setFormData(prev => ({
-        ...prev,
-        lat: e.latlng.lat,
-        lng: e.latlng.lng
-      }));
+    async click(e) {
+      if (!formData.city) {
+        alert("Please select a District first to lock the reporting area.");
+        return;
+      }
+
+      const { lat, lng } = e.latlng;
+
+      try {
+        // Reverse geocoding to verify boundaries
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`);
+        const data = await res.json();
+
+        // Extract all possible location hints for universal matching
+        const addr = data.address || {};
+        const granularLoc = addr.suburb || addr.village || addr.city || addr.town || addr.hamlet || "";
+
+        // Normalize selections for comparison
+        const normSelected = formData.city.toLowerCase().replace(/ district| taluka/g, '').trim();
+        const normGranular = granularLoc.toLowerCase().trim();
+
+        // UNIVERSAL VALIDATION LOGIC:
+        // 1. Scan EVERY field in the address for a match with the selected district
+        let isInside = Object.values(addr).some(val => {
+            if (typeof val !== 'string') return false;
+            const normVal = val.toLowerCase().replace(/ district| taluka/g, '').trim();
+            return normVal.includes(normSelected) || normSelected.includes(normVal);
+        });
+        
+        // 2. TIER 2 FALLBACK: Check if the specific town is a known Taluka in our constants
+        if (!isInside && granularLoc) {
+            const validTalukas = maharashtraDistricts[formData.city] || [];
+            isInside = validTalukas.some(t => t.toLowerCase() === normGranular);
+        }
+
+        // 3. TIER 3 FALLBACK: Special case for Mumbai areas which are complex in OSM
+        if (!isInside && normSelected.includes("mumbai")) {
+            isInside = Object.values(addr).some(val => String(val).toLowerCase().includes("mumbai"));
+        }
+
+        if (!isInside) {
+          const detectedLoc = granularLoc || addr.county || addr.state_district || "an area outside your selected district";
+          alert(`Boundary Alert: You can only report issues within ${formData.city}. Your current pin is in ${detectedLoc}. Please select location in that area.`);
+          return;
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          lat: lat,
+          lng: lng
+        }));
+      } catch (err) {
+        // If geocoding fails, we allow the pin but log it (safety fallback)
+        console.warn("Boundary validation skipped due to network error");
+        setFormData(prev => ({ ...prev, lat: lat, lng: lng }));
+      }
     },
   });
 
   return formData.lat && formData.lng ? (
     <Marker position={[formData.lat, formData.lng]} />
   ) : null;
+}
+
+// Helper component to auto-fly map to selected area
+function MapFocusManager({ city, village }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!city) return;
+
+    const geocodeArea = async () => {
+      try {
+        // Using structured search for maximum precision within administrative boundaries
+        const baseUrl = "https://nominatim.openstreetmap.org/search?format=json&limit=1&country=India&state=Maharashtra";
+        let queryUrl = `${baseUrl}&county=${encodeURIComponent(city)}`;
+
+        if (village) {
+          queryUrl += `&city=${encodeURIComponent(village)}`;
+        }
+
+        const res = await fetch(queryUrl);
+        const data = await res.json();
+
+        if (data && data.length > 0) {
+          const { lat, lon } = data[0];
+          // District level: Zoom 11 | Taluka level: Zoom 14 for detail
+          map.flyTo([lat, lon], village ? 14 : 11, { animate: true, duration: 2.5 });
+        } else if (village) {
+          // Fallback: If taluka search fails, revert to district center
+          const districtRes = await fetch(`${baseUrl}&county=${encodeURIComponent(city)}`);
+          const districtData = await districtRes.json();
+          if (districtData && districtData.length > 0) {
+            map.flyTo([districtData[0].lat, districtData[0].lon], 11, { animate: true });
+          }
+        }
+      } catch (err) {
+        console.error("Precise auto-focus failed", err);
+      }
+    };
+
+    geocodeArea();
+  }, [city, village, map]);
+
+  return null;
 }
 
 function GpsButton({ setFormData }) {
@@ -170,7 +229,7 @@ const CivicChatbot = () => {
           interimTranscript += event.results[i][0].transcript;
         }
       }
-      
+
       const currentText = finalTranscript + interimTranscript;
       setInput(currentText);
 
@@ -178,14 +237,14 @@ const CivicChatbot = () => {
       if (silenceTimer) clearTimeout(silenceTimer);
       silenceTimer = setTimeout(() => {
         if (currentText.trim()) {
-           recognition.stop();
-           sendMessage(currentText);
+          recognition.stop();
+          sendMessage(currentText);
         }
-      }, 5000); 
+      }, 5000);
     };
 
-    recognition.onerror = () => { setIsListening(false); if(silenceTimer) clearTimeout(silenceTimer); };
-    recognition.onend = () => { setIsListening(false); if(silenceTimer) clearTimeout(silenceTimer); };
+    recognition.onerror = () => { setIsListening(false); if (silenceTimer) clearTimeout(silenceTimer); };
+    recognition.onend = () => { setIsListening(false); if (silenceTimer) clearTimeout(silenceTimer); };
   };
 
   const sendMessage = async (overrideInput) => {
@@ -235,15 +294,15 @@ const CivicChatbot = () => {
           </div>
           <div className="p-4 bg-slate-900/60 border-t border-slate-700/50 flex gap-2 items-center">
             <div className="relative flex-1">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-3 pr-10 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-primary h-10"
                 placeholder="Talk to me..."
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyPress={e => e.key === 'Enter' && sendMessage()}
               />
-              <button 
+              <button
                 onClick={startVoice}
                 className={`absolute right-2 top-1.5 p-1 rounded-md transition-all ${isListening ? 'bg-red-500 text-white animate-pulse shadow-red-500/50 shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
               >
@@ -256,7 +315,7 @@ const CivicChatbot = () => {
           </div>
         </div>
       ) : (
-        <button 
+        <button
           onClick={() => setOpen(true)}
           className="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-primary rounded-full shadow-2xl flex items-center justify-center text-3xl hover:scale-110 active:scale-95 transition-all group relative border-4 border-slate-900"
         >
@@ -268,32 +327,162 @@ const CivicChatbot = () => {
   );
 };
 
-const UserHistory = () => {
+const UserHistory = ({ onActivity }) => {
   const [myIssues, setMyIssues] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [editingIssue, setEditingIssue] = useState(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateForm, setUpdateForm] = useState({
+    title: '',
+    category: '',
+    description: '',
+    city: '',
+    village: '',
+    is_emergency: false,
+    media: null
+  });
+
+  const categories = ['pothole', 'garbage', 'water', 'streetlight', 'flood', 'fire', 'other'];
+  const categoryLabels = {
+    pothole: 'Potholes',
+    garbage: 'Garbage collection',
+    water: 'Water leakage',
+    streetlight: 'Streetlight not working',
+    flood: 'Flood',
+    fire: 'Fire',
+    other: 'Other'
+  };
+
+  const fetchMyIssues = async ({ showSpinner = false } = {}) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setMyIssues([]);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
+    if (showSpinner) setLoading(true);
+    else setRefreshing(true);
+
+    try {
+      const res = await fetch('http://localhost:5000/api/user/my-issues', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setMyIssues(Array.isArray(data.issues) ? data.issues : []);
+    } catch (e) {
+      console.error(e);
+      setMyIssues([]);
+    } finally {
+      if (showSpinner) setLoading(false);
+      else setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    fetch('http://localhost:5000/api/user/my-issues', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.issues) setMyIssues(data.issues);
-        setLoading(false);
-      })
-      .catch(e => {
-        console.error(e);
-        setLoading(false);
-      });
+    fetchMyIssues({ showSpinner: true });
   }, []);
 
   if (loading) return (
     <div className="max-w-4xl mx-auto py-24 px-6 text-center">
-       <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-       <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-xs">Retrieving Your Archive...</p>
+      <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+      <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-xs">Retrieving Your Archive...</p>
     </div>
   );
+
+  const closeEditor = () => {
+    setEditingIssue(null);
+    setUpdateForm({ title: '', category: '', description: '', is_emergency: false, media: null });
+  };
+
+  const openEditorForIssue = (issue) => {
+    setEditingIssue(issue);
+    setUpdateForm({
+      title: issue.title || '',
+      category: issue.category || 'other',
+      description: issue.description || '',
+      city: issue.city || '',
+      village: issue.village || '',
+      is_emergency: issue.is_emergency === 1,
+      media: null
+    });
+  };
+
+  const handleUpdateSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingIssue) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return alert('Please login again.');
+
+    if (!updateForm.title.trim()) return alert('Title is required.');
+    if (!updateForm.description.trim()) return alert('Description is required.');
+    if (!updateForm.category) return alert('Category is required.');
+
+    setIsUpdating(true);
+    try {
+      let mediaUrl = null;
+      if (updateForm.media) {
+        const reader = new FileReader();
+        mediaUrl = await new Promise((resolve) => {
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(updateForm.media);
+        });
+      }
+
+      const payload = {
+        title: updateForm.title.trim(),
+        category: updateForm.category,
+        description: updateForm.description.trim(),
+        city: updateForm.city,
+        village: updateForm.village,
+        is_emergency: updateForm.is_emergency
+      };
+      if (mediaUrl) payload.media_url = mediaUrl;
+
+      const res = await fetch(`http://localhost:5000/api/issues/${editingIssue.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Update failed');
+
+      closeEditor();
+      await fetchMyIssues();
+      if (onActivity) onActivity(); // Sync global leaderboard
+    } catch (err) {
+      alert(err.message || 'Update failed');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDelete = async (issueId) => {
+    if (!window.confirm('Delete this report? This cannot be undone.')) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return alert('Please login again.');
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/issues/${issueId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Delete failed');
+      await fetchMyIssues();
+      if (onActivity) onActivity(); // Sync global leaderboard
+    } catch (err) {
+      alert(err.message || 'Delete failed');
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -306,16 +495,16 @@ const UserHistory = () => {
           <p className="text-slate-400 mt-4 font-medium tracking-wide">Tracking your personal contributions to urban excellence.</p>
         </div>
         <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 text-center shadow-xl">
-           <div className="text-3xl font-black text-primary">{myIssues.length}</div>
-           <div className="text-[8px] uppercase font-black text-slate-500 tracking-widest mt-1">Total Reports</div>
+          <div className="text-3xl font-black text-primary">{myIssues.length}</div>
+          <div className="text-[8px] uppercase font-black text-slate-500 tracking-widest mt-1">Total Reports</div>
         </div>
       </div>
-      
+
       <div className="space-y-6">
         {myIssues.map(issue => (
           <div key={issue.id} className="glass-card p-8 border border-slate-700/30 hover:border-primary/40 transition-all flex flex-col md:flex-row gap-8 group shadow-2xl relative overflow-hidden">
             <div className={`absolute top-0 left-0 w-1 h-full ${issue.status === 'Resolved' ? 'bg-emerald-500' : issue.is_escalated ? 'bg-indigo-500' : 'bg-amber-500'}`}></div>
-            
+
             <div className="flex-1">
               <div className="flex flex-wrap gap-2 items-center mb-4">
                 <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-lg">ID: {issue.complaint_id}</span>
@@ -324,18 +513,18 @@ const UserHistory = () => {
                 </span>
                 {issue.is_escalated === 1 && <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 animate-pulse">⚖️ Escalated</span>}
               </div>
-              
+
               <h3 className="text-2xl font-black text-white mb-2 group-hover:text-primary transition-colors">{issue.title}</h3>
               <p className="text-slate-400 text-sm leading-relaxed line-clamp-2 mb-6 font-medium">{issue.description}</p>
-              
+
               {issue.admin_remarks && (
                 <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 mb-6 shadow-inner relative">
                   <div className="text-[8px] font-black text-primary uppercase tracking-[0.2em] mb-2">🏛️ Official Administration Note</div>
                   <p className="text-xs text-slate-300 italic font-medium leading-relaxed">"{issue.admin_remarks}"</p>
                 </div>
               )}
-              
-              <div className="flex items-center gap-6 pt-4 border-t border-slate-800/50">
+
+              <div className="flex items-center gap-6 pt-4 border-t border-slate-800/50 w-full">
                 <div className="flex items-center gap-2 text-[10px] text-slate-500 font-black uppercase tracking-widest">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                   {new Date(issue.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -344,6 +533,25 @@ const UserHistory = () => {
                   <svg className="w-3.5 h-3.5 text-primary" fill="currentColor" viewBox="0 0 20 20"><path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.162-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" /></svg>
                   {issue.upvotes || 0} Citizens Supported
                 </div>
+
+                <div className="flex gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => openEditorForIssue(issue)}
+                    disabled={isUpdating}
+                    className="px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border border-primary/30 text-primary bg-primary/10 hover:bg-primary/20 transition-all active:scale-95 disabled:opacity-60"
+                  >
+                    Update
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(issue.id)}
+                    disabled={isUpdating}
+                    className="px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border border-red-500/30 text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-all active:scale-95 disabled:opacity-60"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -351,13 +559,13 @@ const UserHistory = () => {
               <div className="w-full md:w-48 h-48 rounded-2xl overflow-hidden border border-slate-700/50 shadow-2xl relative group-hover:scale-[1.02] transition-transform duration-500">
                 <img src={issue.media_url} className="w-full h-full object-cover grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" alt="Report Content" />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent flex items-bottom p-4">
-                   <div className="mt-auto text-[8px] font-black uppercase tracking-widest text-white/60">Evidence Provided</div>
+                  <div className="mt-auto text-[8px] font-black uppercase tracking-widest text-white/60">Evidence Provided</div>
                 </div>
               </div>
             )}
           </div>
         ))}
-        
+
         {myIssues.length === 0 && (
           <div className="bg-slate-900/40 rounded-[2rem] p-20 text-center border border-dashed border-slate-800 shadow-2xl">
             <div className="text-6xl mb-6 opacity-20">🗄️</div>
@@ -367,6 +575,150 @@ const UserHistory = () => {
           </div>
         )}
       </div>
+
+      {editingIssue && (
+        <div className="fixed inset-0 z-[10000] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-2xl p-6 border-primary/30 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-black text-white">Update Report</h3>
+              <button
+                type="button"
+                onClick={closeEditor}
+                className="text-slate-300 hover:text-white text-2xl leading-none"
+                aria-label="Close"
+              >
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Title</label>
+                  <input
+                    className="input-field"
+                    type="text"
+                    value={updateForm.title}
+                    onChange={(e) => setUpdateForm(prev => ({ ...prev, title: e.target.value }))}
+                    required
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Category</label>
+                  <select
+                    className="input-field bg-slate-900"
+                    value={updateForm.category}
+                    onChange={(e) => setUpdateForm(prev => ({ ...prev, category: e.target.value }))}
+                  >
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{categoryLabels[cat] || cat}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">District</label>
+                  <select
+                    className="input-field bg-slate-900"
+                    value={updateForm.city}
+                    onChange={(e) => setUpdateForm(prev => ({ ...prev, city: e.target.value, village: '' }))}
+                  >
+                    <option value="">Select District</option>
+                    {Object.keys(maharashtraDistricts).sort().map(district => (
+                      <option key={district} value={district}>{district}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Taluka</label>
+                  <select
+                    className="input-field bg-slate-900"
+                    value={updateForm.village}
+                    onChange={(e) => setUpdateForm(prev => ({ ...prev, village: e.target.value }))}
+                    disabled={!updateForm.city}
+                  >
+                    <option value="">Select Taluka</option>
+                    {updateForm.city && maharashtraDistricts[updateForm.city]?.map(taluka => (
+                      <option key={taluka} value={taluka}>{taluka}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-400">Description</label>
+                <textarea
+                  className="input-field resize-none h-28"
+                  value={updateForm.description}
+                  onChange={(e) => setUpdateForm(prev => ({ ...prev, description: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-between bg-slate-900/40 border border-slate-800/60 p-3 rounded-xl">
+                <div className="flex flex-col">
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-400">Emergency Reporting</span>
+                  <span className="text-[10px] text-slate-500 mt-1">Flags report as highest priority.</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={updateForm.is_emergency}
+                    onChange={(e) => setUpdateForm(prev => ({ ...prev, is_emergency: e.target.checked }))}
+                  />
+                  <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                </label>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-400">Update Media (optional)</label>
+                <div className="flex flex-col md:flex-row md:items-start gap-4">
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      onChange={(e) => setUpdateForm(prev => ({ ...prev, media: e.target.files[0] || null }))}
+                      className="block w-full text-xs text-slate-300 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-white hover:file:bg-indigo-500 cursor-pointer"
+                    />
+                  </div>
+                  {editingIssue.media_url && !updateForm.media && (
+                    <img
+                      src={editingIssue.media_url}
+                      alt="Current media"
+                      className="w-full md:w-28 h-20 md:h-20 object-cover rounded-xl border border-slate-800"
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeEditor}
+                  className="btn flex-1 bg-slate-700 hover:bg-slate-600 text-white"
+                  disabled={isUpdating}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn flex-1 bg-primary hover:bg-indigo-500 text-white font-black uppercase tracking-widest"
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+            {refreshing && (
+              <div className="mt-3 text-[10px] text-slate-500 text-center">Refreshing your history...</div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -381,7 +733,7 @@ export default function App() {
   const [lastComplaintId, setLastComplaintId] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
-    const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState({
     title: '',
     category: '',
     description: '',
@@ -402,7 +754,61 @@ export default function App() {
   const [duplicates, setDuplicates] = useState([]);
   const [checkingDuplicates, setCheckingDuplicates] = useState(false);
   const [isListeningDescription, setIsListeningDescription] = useState(false);
+  const [globalIssues, setGlobalIssues] = useState([]);
+  const [counts, setCounts] = useState({ fixed: 0, avg: '24h' });
   const [smartSuggestions, setSmartSuggestions] = useState([]);
+  const [globalLoading, setGlobalLoading] = useState(false);
+
+  const fetchGlobalData = async () => {
+    if (globalIssues.length === 0) setGlobalLoading(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/issues');
+      const data = await res.json();
+      const issues = data.issues || [];
+      setGlobalIssues(issues);
+
+      const fixed = issues.filter(i => i.status === 'Resolved').length;
+      const labs = issues.filter(i => i.resolved_at && i.created_at).map(i => new Date(i.resolved_at) - new Date(i.created_at));
+      const avgVal = labs.length > 0 ? (labs.reduce((a, b) => a + b, 0) / labs.length / (1000 * 60 * 60)).toFixed(1) + 'h' : '24h';
+
+      setCounts({ fixed, avg: avgVal });
+    } catch (e) {
+      console.error("Global data fetch failed", e);
+    } finally {
+      setGlobalLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGlobalData();
+    const interval = setInterval(fetchGlobalData, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const cityRanking = useMemo(() => {
+    return Object.entries(maharashtraDistricts)
+      .map(([name]) => {
+        const cityIssues = globalIssues.filter(i => i.city === name);
+        const solved = cityIssues.filter(i => i.status === 'Resolved').length;
+        const rate = cityIssues.length > 0 ? solved / cityIssues.length : 0;
+        const userDistrict = user ? globalIssues.some(i => i.city === name && (i.user_id === user.id || i.user?.email === user.email)) : false;
+
+        return {
+          name,
+          score: Math.round(rate * 100),
+          solved,
+          total: cityIssues.length,
+          userReported: userDistrict
+        };
+      })
+      .sort((a, b) => 
+        b.score - a.score || 
+        (b.userReported - a.userReported) || 
+        b.solved - a.solved ||
+        a.name.localeCompare(b.name)
+      )
+      .slice(0, 5);
+  }, [globalIssues, user]);
 
   // --- DUPLICATE DETECTION CHECKER ---
   useEffect(() => {
@@ -411,7 +817,7 @@ export default function App() {
         setCheckingDuplicates(true);
         try {
           const res = await fetch(`http://localhost:5000/api/issues/check-duplicates?lat=${formData.lat}&lng=${formData.lng}&category=${formData.category}`, {
-             headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await res.json();
           setDuplicates(data.duplicates || []);
@@ -448,7 +854,7 @@ export default function App() {
   const startDescriptionVoice = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return alert("Speech recognition not supported");
-    
+
     const recognition = new SpeechRecognition();
     recognition.lang = lang === 'en' ? 'en-US' : lang === 'hi' ? 'hi-IN' : 'mr-IN';
     recognition.start();
@@ -485,11 +891,11 @@ export default function App() {
         }
       }
       if (syncedCount > 0) {
-         setOfflineQueue(remaining);
-         localStorage.setItem('offlineQueue', JSON.stringify(remaining));
+        setOfflineQueue(remaining);
+        localStorage.setItem('offlineQueue', JSON.stringify(remaining));
       }
     };
-    
+
     window.addEventListener('online', syncOffline);
     const interval = setInterval(syncOffline, 15000);
     return () => {
@@ -508,34 +914,34 @@ export default function App() {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
       setToken(storedToken);
-      
+
       // Set initial view based on stored data
       if (storedLoginType === 'admin' && parsedUser.role === 'admin') {
-         setCurrentView('admin');
+        setCurrentView('admin');
       } else {
-         setCurrentView('report');
+        setCurrentView('report');
       }
 
       // Verify role with server to prevent localStorage spoofing
       fetch('http://localhost:5000/api/user/profile', {
         headers: { 'Authorization': `Bearer ${storedToken}` }
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.user) {
-          setUser(data.user);
-          localStorage.setItem('user', JSON.stringify(data.user));
-          // If they were trying to see admin but aren't one, kick them out
-          if (data.user.role !== 'admin' && currentView === 'admin') {
-            setCurrentView('report');
+        .then(res => res.json())
+        .then(data => {
+          if (data.user) {
+            setUser(data.user);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            // If they were trying to see admin but aren't one, kick them out
+            if (data.user.role !== 'admin' && currentView === 'admin') {
+              setCurrentView('report');
+            }
+          } else {
+            handleLogout();
           }
-        } else {
-          handleLogout();
-        }
-      })
-      .catch(() => {
-        // If offline, trust local role but we've already set it
-      });
+        })
+        .catch(() => {
+          // If offline, trust local role but we've already set it
+        });
     }
     setAuthLoading(false);
   }, []);
@@ -568,62 +974,62 @@ export default function App() {
   const handleMediaUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     setFormData(prev => ({ ...prev, media: file }));
-    
+
     if (file.type.startsWith('image/')) {
       setAiParsing(true);
       setAiResult(null);
-      
-      try {
-          // ML Image Detection using Google ViT via public HuggingFace Interface
-          const response = await fetch(
-              "https://api-inference.huggingface.co/models/google/vit-base-patch16-224",
-              { method: "POST", body: file }
-          );
-          const result = await response.json();
-          
-          if (result && Array.isArray(result) && result.length > 0) {
-              const topLabel = result[0].label.toLowerCase();
-              const allLabels = result.map(r => r.label.toLowerCase()).join(' ');
-              
-              let detected = 'other';
-              let severity = 'Medium';
 
-              if (allLabels.match(/garbage|trash|waste|debris|bottle|can|wrapper|dump|plastic/)) detected = 'garbage';
-              else if (allLabels.match(/crack|pothole|road|street|asphalt|pavement|hole/)) {
-                  detected = 'pothole';
-                  // Heuristic for severity
-                  if (allLabels.match(/deep|large|major|dangerous|crater/)) severity = 'High';
-              }
-              else if (allLabels.match(/water|puddle|leak|liquid|pipe/)) detected = 'water';
-              else if (allLabels.match(/light|pole|lamp|street sign|electricity/)) detected = 'streetlight';
-              
-              setFormData(prev => ({...prev, category: detected, severity: severity}));
-              setAiResult({ label: topLabel, detectedCat: detected, severity, confidence: Math.round(result[0].score * 100) });
-          } else {
-              throw new Error("Invalid ML result");
-          }
-      } catch (e) {
-          console.warn("ML Detection failed, relying on manual selection", e);
-          const name = file.name.toLowerCase();
-          
-          // Fallback parsing heuristics if external AI hits rate limits naturally
+      try {
+        // ML Image Detection using Google ViT via public HuggingFace Interface
+        const response = await fetch(
+          "https://api-inference.huggingface.co/models/google/vit-base-patch16-224",
+          { method: "POST", body: file }
+        );
+        const result = await response.json();
+
+        if (result && Array.isArray(result) && result.length > 0) {
+          const topLabel = result[0].label.toLowerCase();
+          const allLabels = result.map(r => r.label.toLowerCase()).join(' ');
+
           let detected = 'other';
           let severity = 'Medium';
-          if (name.match(/garbage|trash|waste|debris|bottle|can|wrapper|dump|plastic/)) detected = 'garbage';
-          else if (name.match(/crack|pothole|road|street|asphalt|pavement|hole/)) {
-              detected = 'pothole';
-              if (name.match(/major|high|big/)) severity = 'High';
+
+          if (allLabels.match(/garbage|trash|waste|debris|bottle|can|wrapper|dump|plastic/)) detected = 'garbage';
+          else if (allLabels.match(/crack|pothole|road|street|asphalt|pavement|hole/)) {
+            detected = 'pothole';
+            // Heuristic for severity
+            if (allLabels.match(/deep|large|major|dangerous|crater/)) severity = 'High';
           }
-          else if (name.match(/water|puddle|leak|liquid|pipe/)) detected = 'water';
-          
-          if (detected !== 'other') {
-             setFormData(prev => ({...prev, category: detected, severity: severity}));
-             setAiResult({ label: 'Heuristic Extracted', detectedCat: detected, severity, confidence: 99 });
-          }
+          else if (allLabels.match(/water|puddle|leak|liquid|pipe/)) detected = 'water';
+          else if (allLabels.match(/light|pole|lamp|street sign|electricity/)) detected = 'streetlight';
+
+          setFormData(prev => ({ ...prev, category: detected, severity: severity }));
+          setAiResult({ label: topLabel, detectedCat: detected, severity, confidence: Math.round(result[0].score * 100) });
+        } else {
+          throw new Error("Invalid ML result");
+        }
+      } catch (e) {
+        console.warn("ML Detection failed, relying on manual selection", e);
+        const name = file.name.toLowerCase();
+
+        // Fallback parsing heuristics if external AI hits rate limits naturally
+        let detected = 'other';
+        let severity = 'Medium';
+        if (name.match(/garbage|trash|waste|debris|bottle|can|wrapper|dump|plastic/)) detected = 'garbage';
+        else if (name.match(/crack|pothole|road|street|asphalt|pavement|hole/)) {
+          detected = 'pothole';
+          if (name.match(/major|high|big/)) severity = 'High';
+        }
+        else if (name.match(/water|puddle|leak|liquid|pipe/)) detected = 'water';
+
+        if (detected !== 'other') {
+          setFormData(prev => ({ ...prev, category: detected, severity: severity }));
+          setAiResult({ label: 'Heuristic Extracted', detectedCat: detected, severity, confidence: 99 });
+        }
       } finally {
-          setAiParsing(false);
+        setAiParsing(false);
       }
     }
   };
@@ -642,12 +1048,12 @@ export default function App() {
       // Convert media file to base64 if it exists
       let mediaUrl = null;
       if (formData.media) {
-          const reader = new FileReader();
-          const base64Promise = new Promise((resolve) => {
-              reader.onloadend = () => resolve(reader.result);
-              reader.readAsDataURL(formData.media);
-          });
-          mediaUrl = await base64Promise;
+        const reader = new FileReader();
+        const base64Promise = new Promise((resolve) => {
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(formData.media);
+        });
+        mediaUrl = await base64Promise;
       }
 
       const safePayload = {
@@ -664,13 +1070,13 @@ export default function App() {
       };
 
       if (!navigator.onLine) {
-         const newQueue = [...offlineQueue, safePayload];
-         setOfflineQueue(newQueue);
-         localStorage.setItem('offlineQueue', JSON.stringify(newQueue));
-         setFormData({ title: '', category: '', description: '', lat: null, lng: null, city: '', state: 'Maharashtra', village: '', media: null, is_emergency: false });
-         setIsSubmitting(false);
-         alert(t.offlineAlert);
-         return;
+        const newQueue = [...offlineQueue, safePayload];
+        setOfflineQueue(newQueue);
+        localStorage.setItem('offlineQueue', JSON.stringify(newQueue));
+        setFormData({ title: '', category: '', description: '', lat: null, lng: null, city: '', state: 'Maharashtra', village: '', media: null, is_emergency: false });
+        setIsSubmitting(false);
+        alert(t.offlineAlert);
+        return;
       }
 
       const response = await fetch('http://localhost:5000/api/issues', {
@@ -687,6 +1093,9 @@ export default function App() {
         setFormData({ title: '', category: '', description: '', lat: null, lng: null, city: '', state: 'Maharashtra', village: '', media: null, is_emergency: false });
         setLastComplaintId(data.complaint_id);
         setShowSuccess({ show: true, complaintId: data.complaint_id });
+
+        // Refresh global rankings immediately after submission
+        fetchGlobalData();
       } else {
         const errorData = await response.json();
         alert(`Server Error: ${errorData.error || "Failed to report issue"}`);
@@ -705,114 +1114,108 @@ export default function App() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-secondary/20 blur-[120px] pointer-events-none"></div>
 
       {currentView !== 'admin' ? (
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-slate-900/60 border-b border-slate-700/50">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary flex items-center gap-4">
-            {t.title}
-             <select value={lang} onChange={(e) => setLang(e.target.value)} className="bg-slate-800 text-xs text-white border border-slate-600 rounded px-2 py-1 outline-none font-sans font-bold">
-               <option value="en">English</option>
-               <option value="hi">हिंदी</option>
-               <option value="mr">मराठी</option>
-             </select>
-          </div>
-          <nav className="flex gap-6 text-sm font-medium items-center">
-            {offlineQueue.length > 0 && (
-               <div className="text-[10px] uppercase font-bold bg-amber-500/20 text-amber-500 px-3 py-1.5 rounded-full border border-amber-500/30 flex items-center gap-2 animate-pulse cursor-default">
+        <header className="sticky top-0 z-50 backdrop-blur-md bg-slate-900/60 border-b border-slate-700/50">
+          <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary flex items-center gap-4">
+              {t.title}
+              <select value={lang} onChange={(e) => setLang(e.target.value)} className="bg-slate-800 text-xs text-white border border-slate-600 rounded px-2 py-1 outline-none font-sans font-bold">
+                <option value="en">English</option>
+                <option value="hi">हिंदी</option>
+                <option value="mr">मराठी</option>
+              </select>
+            </div>
+            <nav className="flex gap-6 text-sm font-medium items-center">
+              {offlineQueue.length > 0 && (
+                <div className="text-[10px] uppercase font-bold bg-amber-500/20 text-amber-500 px-3 py-1.5 rounded-full border border-amber-500/30 flex items-center gap-2 animate-pulse cursor-default">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                   {offlineQueue.length} Offline
-               </div>
-            )}
-            {user ? (
-               <>
-                <button
-                  onClick={() => setCurrentView('report')}
-                  className={`${currentView === 'report' ? 'text-primary' : 'text-slate-400'} hover:text-slate-200 transition-colors mr-2`}
-                >
-                  📡 {t.reportIssue}
-                </button>
-                <button
-                  onClick={() => setCurrentView('track')}
-                  className={`${currentView === 'track' ? 'text-primary font-black scale-105' : 'text-slate-400'} hover:text-slate-200 transition-all text-xs tracking-widest uppercase mr-4`}
-                >
-                  📡 {t.trackIssues}
-                </button>
-                <button
-                  onClick={() => setCurrentView('history')}
-                  className={`${currentView === 'history' ? 'text-primary' : 'text-slate-400'} hover:text-slate-200 transition-colors mr-2`}
-                >
-                  📚 {t.myHistory}
-                </button>
-                {user.role === 'admin' && (
-                  <button
-                    onClick={() => setCurrentView('admin')}
-                    className={`${currentView === 'admin' ? 'text-amber-500 font-extrabold shadow-sm' : 'text-slate-500'} hover:text-amber-400 transition-all text-[10px] tracking-[0.2em] uppercase border border-slate-800 px-3 py-1 rounded-md ml-2 hover:border-amber-500/30`}
-                  >
-                    🔐 Admin Portal
-                  </button>
-                )}
-                <NotificationBell complaintId={lastComplaintId} />
-                <div className="flex items-center gap-3 ml-4 pl-4 border-l border-slate-700">
-                  <button
-                    onClick={() => setShowProfileModal(true)}
-                    className="text-slate-300 hover:text-primary transition-colors text-sm font-medium cursor-pointer"
-                  >
-                    {t.welcome}, {user.name}
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="text-slate-400 hover:text-slate-200 transition-colors text-sm"
-                  >
-                    {t.logout}
-                  </button>
                 </div>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => setCurrentView('track')}
-                  className={`${currentView === 'track' ? 'text-primary' : 'text-slate-400'} hover:text-slate-200 transition-colors mr-2`}
-                >
-                  📡 {t.trackIssues}
-                </button>
-                <button
-                  onClick={() => setCurrentView('login')}
-                  className={`${currentView === 'login' ? 'text-primary' : 'text-slate-400'} hover:text-slate-200 transition-colors`}
-                >
-                  {t.login}
-                </button>
-                <button
-                  onClick={() => setCurrentView('register')}
-                  className={`${currentView === 'register' ? 'text-primary' : 'text-slate-400'} hover:text-slate-200 transition-colors`}
-                >
-                  {t.register}
-                </button>
-              </>
-            )}
-          </nav>
-        </div>
-      </header>
-      ) : (
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-slate-900/80 border-b border-amber-500/30">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-             <div className="w-8 h-8 bg-amber-500/10 border border-amber-500 rounded-lg flex items-center justify-center">
-               <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-             </div>
-             <div className="text-xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-amber-400 to-amber-600 uppercase">
-               GovPortal
-             </div>
+              )}
+              {user ? (
+                <>
+                  <button
+                    onClick={() => setCurrentView('report')}
+                    className={`${currentView === 'report' ? 'text-primary' : 'text-slate-400'} hover:text-slate-200 transition-colors mr-2`}
+                  >
+                    📡 {t.reportIssue}
+                  </button>
+                  <button
+                    onClick={() => setCurrentView('track')}
+                    className={`${currentView === 'track' ? 'text-primary font-black scale-105' : 'text-slate-400'} hover:text-slate-200 transition-all text-xs tracking-widest uppercase mr-4`}
+                  >
+                    📡 {t.trackIssues}
+                  </button>
+                  <button
+                    onClick={() => setCurrentView('history')}
+                    className={`${currentView === 'history' ? 'text-primary' : 'text-slate-400'} hover:text-slate-200 transition-colors mr-2`}
+                  >
+                    📚 {t.myHistory}
+                  </button>
+                  {user.role === 'admin' && (
+                    <button
+                      onClick={() => setCurrentView('admin')}
+                      className={`${currentView === 'admin' ? 'text-amber-500 font-extrabold shadow-sm' : 'text-slate-500'} hover:text-amber-400 transition-all text-[10px] tracking-[0.2em] uppercase border border-slate-800 px-3 py-1 rounded-md ml-2 hover:border-amber-500/30`}
+                    >
+                      🔐 Admin Portal
+                    </button>
+                  )}
+                  <NotificationBell complaintId={lastComplaintId} />
+                  <div className="flex items-center gap-3 ml-4 pl-4 border-l border-slate-700">
+                    <button
+                      onClick={() => setShowProfileModal(true)}
+                      className="text-slate-300 hover:text-primary transition-colors text-sm font-medium cursor-pointer"
+                    >
+                      {t.welcome}, {user.name}
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="text-slate-400 hover:text-slate-200 transition-colors text-sm"
+                    >
+                      {t.logout}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setCurrentView('login')}
+                    className={`${currentView === 'login' ? 'text-primary' : 'text-slate-400'} hover:text-slate-200 transition-colors`}
+                  >
+                    {t.login}
+                  </button>
+                  <button
+                    onClick={() => setCurrentView('register')}
+                    className={`${currentView === 'register' ? 'text-primary' : 'text-slate-400'} hover:text-slate-200 transition-colors`}
+                  >
+                    {t.register}
+                  </button>
+                </>
+              )}
+            </nav>
           </div>
-          <nav className="flex gap-6 items-center">
-            <span className="text-amber-500 text-xs font-bold uppercase tracking-widest">{user?.name} | {user?.email}</span>
-            <button
-               onClick={handleLogout}
-               className="btn py-1.5 px-6 text-[10px] bg-red-500/10 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white uppercase tracking-widest transition-all"
-            >
-               Sign Out ➔
-            </button>
-          </nav>
-        </div>
-      </header>
+        </header>
+      ) : (
+        <header className="sticky top-0 z-50 backdrop-blur-md bg-slate-900/80 border-b border-amber-500/30">
+          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-amber-500/10 border border-amber-500 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+              </div>
+              <div className="text-xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-amber-400 to-amber-600 uppercase">
+                GovPortal
+              </div>
+            </div>
+            <nav className="flex gap-6 items-center">
+              <span className="text-amber-500 text-xs font-bold uppercase tracking-widest">{user?.name} | {user?.email}</span>
+              <button
+                onClick={handleLogout}
+                className="btn py-1.5 px-6 text-[10px] bg-red-500/10 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white uppercase tracking-widest transition-all"
+              >
+                Sign Out ➔
+              </button>
+            </nav>
+          </div>
+        </header>
       )}
 
       {authLoading ? (
@@ -829,7 +1232,7 @@ export default function App() {
           <Login onLogin={handleLogin} onSwitchToRegister={() => setCurrentView('register')} />
         )
       ) : currentView === 'history' ? (
-        <UserHistory />
+        <UserHistory onActivity={fetchGlobalData} />
       ) : currentView === 'admin' && user?.role === 'admin' ? (
         <AdminDashboard />
       ) : currentView === 'track' ? (
@@ -845,12 +1248,80 @@ export default function App() {
             </p>
             <div className="flex gap-4">
               <div className="px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700/50 flex flex-col w-1/2 items-center">
-                <span className="text-3xl font-bold text-primary">12K+</span>
+                <span className="text-3xl font-bold text-primary">{counts.fixed > 1000 ? (counts.fixed / 1000).toFixed(1) + 'K+' : counts.fixed}</span>
                 <span className="text-xs text-slate-400 uppercase tracking-widest mt-1">{t.issuesFixed}</span>
               </div>
               <div className="px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700/50 flex flex-col w-1/2 items-center">
-                <span className="text-3xl font-bold text-secondary">24h</span>
+                <span className="text-3xl font-bold text-secondary">{counts.avg}</span>
                 <span className="text-xs text-slate-400 uppercase tracking-widest mt-1">{t.avgResponse}</span>
+              </div>
+            </div>
+
+            {/* Regional Performance Leaderboard */}
+            <div className="mt-12 bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl -z-10 group-hover:bg-primary/10 transition-colors"></div>
+
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
+                    🏆 State Leaderboard <span className="text-primary/70 font-black tracking-tighter">(Top 5)</span>
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-tighter">Elite Top 5 of 36 Districts Ranked by Efficiency</p>
+                </div>
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-md">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                  <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">Live Data</span>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {globalLoading ? (
+                  <div className="py-12 flex flex-col items-center justify-center space-y-4">
+                    <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] animate-pulse">Awaiting Regional Pulse...</p>
+                  </div>
+                ) : (
+                  <>
+                    {cityRanking.map((city, idx) => (
+                      <div key={city.name} className="flex flex-col gap-1.5 group/item">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black border ${idx === 0 ? 'bg-amber-500 border-amber-400 text-black shadow-[0_0_10px_rgba(245,158,11,0.2)]' :
+                              idx === 1 ? 'bg-slate-300 border-slate-200 text-black' :
+                                idx === 2 ? 'bg-amber-700 border-amber-600 text-white' :
+                                  'bg-slate-800 border-slate-700 text-slate-500'
+                              }`}>
+                              {idx + 1}
+                            </span>
+                            <span className="text-sm font-black text-slate-300 group-hover/item:text-white transition-colors uppercase tracking-tight">{city.name}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] font-black text-primary">{city.score}% Success</span>
+                            <div className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">{city.solved} Resolved</div>
+                          </div>
+                        </div>
+                        <div className="w-full bg-slate-800/50 h-1.5 rounded-full overflow-hidden border border-slate-700/30">
+                          <div
+                            className={`h-full rounded-full transition-all duration-1000 ${city.score > 80 ? 'bg-emerald-500' :
+                              city.score > 50 ? 'bg-primary' :
+                                'bg-amber-500'
+                              }`}
+                            style={{ width: `${city.score}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+                    {cityRanking.length === 0 && (
+                      <div className="py-8 text-center bg-slate-800/20 rounded-xl border border-dashed border-slate-700">
+                        <p className="text-[10px] text-slate-600 uppercase font-black tracking-widest">No Active Districts Yet</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              <div className="mt-6 pt-4 border-t border-slate-800/50 flex items-center justify-center gap-2">
+                <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <p className="text-[8px] text-slate-500 italic font-medium">Rankings prioritize resolved-to-total ratio. Higher efficiency = Higher Rank.</p>
               </div>
             </div>
           </div>
@@ -893,8 +1364,8 @@ export default function App() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-1.5 flex justify-between">
-                       <span>Upload Media</span>
-                       {aiParsing && <span className="text-xs text-primary animate-pulse flex items-center gap-1"><svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> AI Scanning...</span>}
+                      <span>Upload Media</span>
+                      {aiParsing && <span className="text-xs text-primary animate-pulse flex items-center gap-1"><svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> AI Scanning...</span>}
                     </label>
                     <input
                       type="file"
@@ -902,65 +1373,65 @@ export default function App() {
                       accept="image/*,video/*"
                       onChange={handleMediaUpload}
                     />
-                      {aiResult && (
-                        <div className="mt-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-2 rounded-lg flex items-start gap-2 animate-in fade-in">
-                          <span className="text-lg">🤖</span>
-                          <div>
-                            <div className="font-bold flex items-center gap-2">
-                               AI Detection: {aiResult.label} ({aiResult.confidence}%)
-                               <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter ${aiResult.severity === 'High' ? 'bg-red-500 text-white' : aiResult.severity === 'Low' ? 'bg-blue-500 text-white' : 'bg-amber-500 text-black'}`}>
-                                 {aiResult.severity} Severity
-                               </span>
-                            </div>
-                            <div className="text-slate-400 mt-0.5">Auto-categorized as: <span className="text-white uppercase tracking-widest">{aiResult.detectedCat}</span></div>
+                    {aiResult && (
+                      <div className="mt-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-2 rounded-lg flex items-start gap-2 animate-in fade-in">
+                        <span className="text-lg">🤖</span>
+                        <div>
+                          <div className="font-bold flex items-center gap-2">
+                            AI Detection: {aiResult.label} ({aiResult.confidence}%)
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter ${aiResult.severity === 'High' ? 'bg-red-500 text-white' : aiResult.severity === 'Low' ? 'bg-blue-500 text-white' : 'bg-amber-500 text-black'}`}>
+                              {aiResult.severity} Severity
+                            </span>
                           </div>
+                          <div className="text-slate-400 mt-0.5">Auto-categorized as: <span className="text-white uppercase tracking-widest">{aiResult.detectedCat}</span></div>
                         </div>
-                      )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-red-500/5 border border-red-500/20 p-4 rounded-xl flex items-center justify-between group hover:bg-red-500/10 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${formData.is_emergency ? 'bg-red-500 text-white animate-pulse shadow-red-500/50 shadow-md' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>
+                      🚨
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-300">Hazard Level</div>
+                      <div className={`text-xs font-bold transition-colors ${formData.is_emergency ? 'text-red-400' : 'text-slate-500'}`}>Emergency Reporting</div>
                     </div>
                   </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={formData.is_emergency}
+                      onChange={(e) => setFormData({ ...formData, is_emergency: e.target.checked })}
+                    />
+                    <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                  </label>
+                </div>
 
-                  <div className="bg-red-500/5 border border-red-500/20 p-4 rounded-xl flex items-center justify-between group hover:bg-red-500/10 transition-all">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${formData.is_emergency ? 'bg-red-500 text-white animate-pulse shadow-red-500/50 shadow-md' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>
-                        🚨
-                      </div>
-                      <div>
-                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-300">Hazard Level</div>
-                        <div className={`text-xs font-bold transition-colors ${formData.is_emergency ? 'text-red-400' : 'text-slate-500'}`}>Emergency Reporting</div>
-                      </div>
+                {smartSuggestions.length > 0 && (
+                  <div className="bg-blue-500/5 border border-blue-500/20 p-4 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">🧠</span>
+                      <span className="text-sm font-bold text-blue-400">Smart Suggestions</span>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="sr-only peer"
-                        checked={formData.is_emergency}
-                        onChange={(e) => setFormData({...formData, is_emergency: e.target.checked})}
-                      />
-                      <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
-                    </label>
+                    <ul className="space-y-1">
+                      {smartSuggestions.map((suggestion, idx) => (
+                        <li key={idx} className="text-xs text-slate-300 flex items-center gap-2">
+                          <span className="w-1 h-1 bg-blue-400 rounded-full"></span>
+                          {suggestion}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-
-                  {smartSuggestions.length > 0 && (
-                    <div className="bg-blue-500/5 border border-blue-500/20 p-4 rounded-xl">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-lg">🧠</span>
-                        <span className="text-sm font-bold text-blue-400">Smart Suggestions</span>
-                      </div>
-                      <ul className="space-y-1">
-                        {smartSuggestions.map((suggestion, idx) => (
-                          <li key={idx} className="text-xs text-slate-300 flex items-center gap-2">
-                            <span className="w-1 h-1 bg-blue-400 rounded-full"></span>
-                            {suggestion}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1.5 flex justify-between items-center">
                     <span>Description</span>
-                    <button 
+                    <button
                       type="button"
                       onClick={startDescriptionVoice}
                       className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isListeningDescription ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'}`}
@@ -1030,6 +1501,7 @@ export default function App() {
                         maxZoom={20}
                       />
                       <LocationSelector formData={formData} setFormData={setFormData} />
+                      <MapFocusManager city={formData.city} village={formData.village} />
                     </MapContainer>
                   </div>
                 </div>
@@ -1045,7 +1517,7 @@ export default function App() {
                         <div className="text-xs text-slate-300 font-medium">This issue might already be reported.</div>
                       </div>
                     </div>
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setCurrentView('track')}
                       className="bg-amber-500 hover:bg-amber-400 text-slate-900 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg transition-all"

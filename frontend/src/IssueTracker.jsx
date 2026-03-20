@@ -74,6 +74,11 @@ export default function IssueTracker() {
       setIssues(prev => prev.map(issue => issue.id === updatedIssue.id ? updatedIssue : issue));
     });
 
+    socket.on('issueDeleted', (deletedData) => {
+      const deletedId = deletedData?.id ?? deletedData;
+      setIssues(prev => prev.filter(issue => issue.id !== deletedId));
+    });
+
     socket.on('commentAdded', (commentData) => {
       // For simplicity, refetch issues or update comments
       // In a real app, maintain comments state

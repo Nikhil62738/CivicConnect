@@ -8,7 +8,7 @@ const { open } = require('sqlite');
 const admin = require('firebase-admin');
 const path = require('path');
 const https = require('https');
-const { generateOTP, sendEmailOTP, sendSmsOTP, sendStatusUpdateEmail } = require('./mailer');
+const { generateOTP, sendEmailOTP, sendSmsOTP, sendStatusUpdateEmail, sendComplaintRegistrationEmail } = require('./mailer');
 const http = require('http');
 const socketIo = require('socket.io');
 
@@ -593,6 +593,53 @@ app.put('/api/auth/profile', authenticateToken, async (req, res) => {
   }
 });
 
+// --- USER ACCOUNT DELETE (self) ---
+app.delete('/api/auth/account', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await db.get('SELECT id, email FROM users WHERE id = ?', [userId]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Pre-fetch issue ids so we can emit deletion events after commit
+    const ownedIssues = await db.all('SELECT id FROM issues WHERE user_id = ?', [userId]);
+    const issueIds = ownedIssues.map(i => i.id);
+
+    await db.exec('BEGIN');
+
+    // Remove all user-generated data across the system
+    await db.run('DELETE FROM votes WHERE user_id = ?', [userId]);
+    await db.run('DELETE FROM comments WHERE user_id = ?', [userId]);
+    await db.run('DELETE FROM notificationPreferences WHERE user_id = ?', [userId]);
+    await db.run('DELETE FROM verifications WHERE user_id = ?', [userId]);
+
+    // Remove the user's issues and any dependent rows tied to those issues
+    if (issueIds.length > 0) {
+      const placeholders = issueIds.map(() => '?').join(',');
+      await db.run(`DELETE FROM votes WHERE issue_id IN (${placeholders})`, issueIds);
+      await db.run(`DELETE FROM comments WHERE issue_id IN (${placeholders})`, issueIds);
+      await db.run(`DELETE FROM notificationPreferences WHERE issue_id IN (${placeholders})`, issueIds);
+      await db.run(`DELETE FROM verifications WHERE issue_id IN (${placeholders})`, issueIds);
+      await db.run(`DELETE FROM issues WHERE id IN (${placeholders})`, issueIds);
+    } else {
+      await db.run('DELETE FROM issues WHERE user_id = ?', [userId]);
+    }
+
+    await db.run('DELETE FROM users WHERE id = ?', [userId]);
+    await db.exec('COMMIT');
+
+    // Notify clients so they can remove deleted issues in real time.
+    for (const id of issueIds) {
+      io.emit('issueDeleted', { id });
+    }
+
+    res.json({ success: true, message: 'Account deleted successfully' });
+  } catch (err) {
+    try { await db.exec('ROLLBACK'); } catch (e) { /* ignore rollback errors */ }
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ==========================================
 // ISSUES ROUTES
 // ==========================================
@@ -811,7 +858,7 @@ app.post('/api/issues', authenticateToken, async (req, res) => {
         sendSmsNotification(user.phone, `CivicConnect: Complaint ${complaintId} (${title}) registered successfully!`);
       }
       if (user.email) {
-        sendEmailNotification(user.email, `Complaint Registered: ${complaintId}`, `<h3>CivicConnect Alert</h3><p>Your issue <b>${title}</b> has been received and assigned ID <b>${complaintId}</b>.</p>`);
+        sendComplaintRegistrationEmail(user.email, complaintId, title, category, user.name);
       }
       sendPushNotification(user.id, "Registered Successfully", `Complaint ${complaintId} is now tracked.`);
     }
@@ -983,6 +1030,176 @@ app.post('/api/issues/:id/comments', authenticateToken, async (req, res) => {
   }
 });
 
+// --- USER REPORT UPDATE (owner or admin) ---
+app.put('/api/issues/:id', authenticateToken, async (req, res) => {
+  try {
+    const issueId = parseInt(req.params.id);
+    if (!Number.isFinite(issueId)) return res.status(400).json({ error: 'Invalid issue id' });
+
+    const existing = await db.get('SELECT * FROM issues WHERE id = ?', [issueId]);
+    if (!existing) return res.status(404).json({ error: 'Issue not found' });
+
+    if (req.user.role !== 'admin' && existing.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied. You can only update your own reports.' });
+    }
+
+    const {
+      title,
+      category,
+      description,
+      lat,
+      lng,
+      city,
+      state,
+      village,
+      media_url,
+      is_emergency,
+      severity
+    } = req.body || {};
+
+    const hasAnyUpdate =
+      title !== undefined ||
+      category !== undefined ||
+      description !== undefined ||
+      lat !== undefined ||
+      lng !== undefined ||
+      city !== undefined ||
+      state !== undefined ||
+      village !== undefined ||
+      media_url !== undefined ||
+      is_emergency !== undefined ||
+      severity !== undefined;
+
+    if (!hasAnyUpdate) return res.status(400).json({ error: 'No update fields provided' });
+
+    const finalTitle = title !== undefined ? String(title).trim() : existing.title;
+    if (title !== undefined && !finalTitle) return res.status(400).json({ error: 'Title cannot be empty' });
+
+    const finalCategory = category !== undefined ? String(category).trim() : existing.category;
+    if (category !== undefined && !finalCategory) return res.status(400).json({ error: 'Category cannot be empty' });
+
+    const finalDescription = description !== undefined ? String(description).trim() : existing.description;
+    if (description !== undefined && !finalDescription) return res.status(400).json({ error: 'Description cannot be empty' });
+
+    const finalLat = lat !== undefined ? lat : existing.lat;
+    const finalLng = lng !== undefined ? lng : existing.lng;
+
+    const finalCity = city !== undefined ? city : existing.city;
+    const finalState = state !== undefined ? state : existing.state;
+    const finalVillage = village !== undefined ? village : existing.village;
+
+    const autoEmergency = ['flood', 'fire'].includes(String(finalCategory || '').toLowerCase());
+    const userEmergency = is_emergency !== undefined ? (is_emergency ? 1 : 0) : existing.is_emergency;
+    const finalIsEmergency = (userEmergency === 1 || autoEmergency) ? 1 : 0;
+
+    let finalSeverity = severity || 'Medium';
+    const descLower = String(finalDescription || '').toLowerCase();
+    if (finalIsEmergency) finalSeverity = 'High';
+    else if (descLower.includes('minor') || descLower.includes('small')) finalSeverity = 'Low';
+    else if (descLower.includes('major') || descLower.includes('dangerous')) finalSeverity = 'High';
+
+    const translatedTitle = await translateText(finalTitle);
+    const translatedDesc = await translateText(finalDescription);
+
+    const predictedPriority =
+      finalIsEmergency || finalSeverity === 'High'
+        ? 'High'
+        : await calculatePriority(issueId, finalLat, finalLng);
+
+    const now = new Date();
+    const deadlineAt = new Date(now);
+    if (finalIsEmergency) deadlineAt.setHours(now.getHours() + 2);
+    else if (String(finalCategory || '').toLowerCase() === 'garbage') deadlineAt.setHours(now.getHours() + 24);
+    else if (String(finalCategory || '').toLowerCase() === 'pothole') deadlineAt.setDate(now.getDate() + 7);
+    else deadlineAt.setDate(now.getDate() + 3);
+
+    // Note: existing app stores "Original: ..." inside admin_remarks for translated descriptions.
+    let adminRemarks = existing.admin_remarks;
+    if (translatedDesc.detected !== 'en') {
+      if (!adminRemarks || String(adminRemarks).startsWith('Original:')) {
+        adminRemarks = `Original: ${translatedDesc.original}`;
+      }
+    } else if (adminRemarks && String(adminRemarks).startsWith('Original:')) {
+      adminRemarks = null;
+    }
+
+    const newMediaUrl = Object.prototype.hasOwnProperty.call(req.body, 'media_url')
+      ? (media_url || null)
+      : existing.media_url;
+
+    await db.run(
+      `UPDATE issues
+       SET title = ?,
+           category = ?,
+           description = ?,
+           lat = ?,
+           lng = ?,
+           city = ?,
+           state = ?,
+           village = ?,
+           media_url = ?,
+           is_emergency = ?,
+           priority = ?,
+           deadline_at = ?,
+           admin_remarks = ?,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [
+        translatedTitle.translated,
+        finalCategory,
+        translatedDesc.translated,
+        finalLat,
+        finalLng,
+        finalCity,
+        finalState,
+        finalVillage,
+        newMediaUrl,
+        finalIsEmergency,
+        predictedPriority,
+        deadlineAt.toISOString(),
+        adminRemarks,
+        issueId
+      ]
+    );
+
+    const updatedIssue = await db.get('SELECT * FROM issues WHERE id = ?', [issueId]);
+    io.emit('issueUpdated', updatedIssue);
+
+    res.json({ success: true, issue: updatedIssue });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- USER REPORT DELETE (owner or admin) ---
+app.delete('/api/issues/:id', authenticateToken, async (req, res) => {
+  try {
+    const issueId = parseInt(req.params.id);
+    if (!Number.isFinite(issueId)) return res.status(400).json({ error: 'Invalid issue id' });
+
+    const existing = await db.get('SELECT * FROM issues WHERE id = ?', [issueId]);
+    if (!existing) return res.status(404).json({ error: 'Issue not found' });
+
+    if (req.user.role !== 'admin' && existing.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied. You can only delete your own reports.' });
+    }
+
+    await db.exec('BEGIN');
+    await db.run('DELETE FROM votes WHERE issue_id = ?', [issueId]);
+    await db.run('DELETE FROM comments WHERE issue_id = ?', [issueId]);
+    await db.run('DELETE FROM notificationPreferences WHERE issue_id = ?', [issueId]);
+    await db.run('DELETE FROM verifications WHERE issue_id = ?', [issueId]);
+    await db.run('DELETE FROM issues WHERE id = ?', [issueId]);
+    await db.exec('COMMIT');
+
+    io.emit('issueDeleted', { id: issueId });
+    res.json({ success: true, message: 'Issue deleted' });
+  } catch (err) {
+    try { await db.exec('ROLLBACK'); } catch (e) { /* ignore */ }
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.put('/api/issues/:id/status', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const issueId = parseInt(req.params.id);
@@ -1040,9 +1257,6 @@ app.put('/api/issues/:id/status', authenticateToken, requireAdmin, async (req, r
         if (remarks) msg += ` Remarks: ${remarks}`;
 
         if (pref.phone) sendSmsNotification(pref.phone, msg);
-        if (pref.email) {
-          sendEmailNotification(pref.email, `Status Update: ${issue.complaint_id}`, `<h3>CivicConnect Alert</h3><p>Your issue <b>${issue.complaint_id}</b> ${eventPhrase}.</p>${remarks ? `<p><b>Admin Remark:</b> ${remarks}</p>` : ''}`);
-        }
         if (pref.push_enabled) sendPushNotification(pref.user_id, "Status Updated", msg);
       }
       // Send notification with rich data
@@ -1109,34 +1323,70 @@ app.get('/api/admin/department-performance', authenticateToken, requireAdmin, as
 
 app.get('/api/admin/issue-predictions', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const history = await db.all('SELECT category, created_at, lat, lng FROM issues');
+    const history = await db.all('SELECT category, city, created_at, lat, lng FROM issues');
+    
+    if (history.length === 0) {
+      return res.json({ predictions: [] });
+    }
 
-    // Simple Pattern Analysis (Spike by DOW & Area)
-    const patterns = {};
+    // 1. Calculate Category Frequency
+    const catFreq = {};
     history.forEach(h => {
-      const date = new Date(h.created_at);
-      const dow = date.toLocaleDateString('en-US', { weekday: 'long' });
-      // Grid location to ~5km
-      const grid = `${h.lat.toFixed(1)},${h.lng.toFixed(1)}`;
-      const key = `${h.category}_${dow}_${grid}`;
-
-      if (!patterns[key]) patterns[key] = { count: 0, category: h.category, dow, grid, lat: h.lat, lng: h.lng };
-      patterns[key].count++;
+      catFreq[h.category] = (catFreq[h.category] || 0) + 1;
     });
 
-    // Pick top 5 predictive "hotspots"
-    const predictions = Object.values(patterns)
-      .filter(p => p.count >= 2) // Need at least some pattern
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5)
-      .map(p => ({
-        ...p,
-        likelihood: 'High',
-        note: `${p.dow} spikes detected in area ${p.grid} for ${p.category}`
-      }));
+    // 2. Aggregate by City & Category
+    const cityCatPatterns = {};
+    history.forEach(h => {
+      if (!h.city) return;
+      const key = `${h.city}_${h.category}`;
+      if (!cityCatPatterns[key]) {
+        cityCatPatterns[key] = { 
+          count: 0, 
+          city: h.city, 
+          category: h.category,
+          avgLat: 0,
+          avgLng: 0
+        };
+      }
+      cityCatPatterns[key].count++;
+      cityCatPatterns[key].avgLat += h.lat;
+      cityCatPatterns[key].avgLng += h.lng;
+    });
+
+    const results = Object.values(cityCatPatterns).map(p => {
+      const avgLat = (p.avgLat / p.count).toFixed(2);
+      const avgLng = (p.avgLng / p.count).toFixed(2);
+      const totalInCat = catFreq[p.category];
+      const intensity = Math.min(Math.round((p.count / totalInCat) * 100), 100);
+      
+      let likelihood = intensity > 70 ? 'CRITICAL' : intensity > 40 ? 'High' : 'Moderate';
+      let note = "";
+      
+      if (p.category === 'pothole') note = `Seasonal road erosion pattern detected in ${p.city}. Proactive inspection recommended for GRID ${avgLat},${avgLng}.`;
+      else if (p.category === 'garbage') note = `Accumulation spike in ${p.city} indicates secondary collection failure risk.`;
+      else if (p.category === 'water') note = `Pressure drop chain reported. Potential main pipeline compromise in ${p.city}.`;
+      else note = `Unusual volume of ${p.category} reports in ${p.city}. Monitoring cluster active.`;
+
+      return {
+        category: p.category.toUpperCase(),
+        likelihood,
+        intensity: `${intensity}%`,
+        note,
+        grid: `${avgLat}, ${avgLng}`,
+        dow: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+        count: p.count
+      };
+    });
+
+    // Sort by intensity and return top 5
+    const predictions = results
+      .sort((a, b) => parseInt(b.intensity) - parseInt(a.intensity))
+      .slice(0, 5);
 
     res.json({ predictions });
   } catch (err) {
+    console.error("Prediction Engine Error:", err);
     res.status(500).json({ error: err.message });
   }
 });

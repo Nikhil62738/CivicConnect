@@ -27,15 +27,18 @@ export default function NotificationBell({ complaintId }) {
                headers: { 'Authorization': `Bearer ${token}` } 
            });
            const data = await res.json();
-           if (data.notifications && data.notifications.length > 0) {
-               // Only trigger unread ping if new notification count structurally changes
-               setNotifications(prev => {
-                   if (prev.length !== data.notifications.length && !isOpen) {
-                       setHasUnread(true);
-                   }
-                   return data.notifications;
-               });
-           }
+            if (data.notifications) {
+                const dismissedIds = JSON.parse(localStorage.getItem('dismissedNotifications') || '[]');
+                const filtered = data.notifications.filter(n => !dismissedIds.includes(n.id));
+
+                setNotifications(prev => {
+                    // Trigger unread ping ONLY if filtered new items appear
+                    if (filtered.length > prev.length && !isOpen) {
+                        setHasUnread(true);
+                    }
+                    return filtered;
+                });
+            }
        } catch (e) {
            console.error("Failed to poll notifications", e);
        }
@@ -99,7 +102,14 @@ export default function NotificationBell({ complaintId }) {
             <div className="p-3 bg-slate-900/50 text-center border-t border-slate-700">
               <button 
                 className="text-xs text-slate-400 hover:text-white transition-colors"
-                onClick={() => setNotifications([])}
+                onClick={() => {
+                  const allIds = notifications.map(n => n.id);
+                  const existingDismissed = JSON.parse(localStorage.getItem('dismissedNotifications') || '[]');
+                  const newDismissed = Array.from(new Set([...existingDismissed, ...allIds]));
+                  localStorage.setItem('dismissedNotifications', JSON.stringify(newDismissed));
+                  setNotifications([]);
+                  setHasUnread(false);
+                }}
               >
                 Clear All
               </button>
