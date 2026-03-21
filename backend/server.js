@@ -3,8 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const sqlite3 = require('sqlite3').verbose();
-const { open } = require('sqlite');
+const { connectDB, User, Issue, Vote, Comment, NotificationPreference, Verification } = require('./db');
 const admin = require('firebase-admin');
 const path = require('path');
 const https = require('https');
@@ -179,127 +178,36 @@ const sendPushNotification = async (userId, title, body) => {
 // ==========================================
 // SQLITE DATABASE SETUP (Zero Config)
 // ==========================================
-let db;
+// ==========================================
+// MONGODB SETUP
+// ==========================================
+connectDB();
 
-async function initDB() {
+// MASTER ADMIN SEEDER
+const seedMasterAdmin = async () => {
   try {
-    // Opens or creates a physical civic_data.sqlite file in the backend folder
-    db = await open({
-      filename: path.join(__dirname, 'civic_data.sqlite'),
-      driver: sqlite3.Database
-    });
-
-    await db.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        email TEXT UNIQUE,
-        phone TEXT,
-        password TEXT,
-        role TEXT,
-        department TEXT,
-        points INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-
-      -- Migration: Ensure department column exists in users
-      PRAGMA table_info(users);
-
-      CREATE TABLE IF NOT EXISTS issues (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        complaint_id TEXT UNIQUE,
-        user_id TEXT,
-        title TEXT,
-        category TEXT,
-        description TEXT,
-        lat REAL,
-        lng REAL,
-        city TEXT,
-        state TEXT,
-        village TEXT,
-        media_url TEXT,
-        resolution_media_url TEXT,
-        is_emergency INTEGER DEFAULT 0,
-        status TEXT DEFAULT 'Pending',
-        priority TEXT DEFAULT 'Normal',
-        department TEXT DEFAULT 'Unassigned',
-        admin_remarks TEXT,
-        resolved_at DATETIME,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS votes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        issue_id INTEGER,
-        user_id TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(issue_id, user_id)
-      );
-
-      CREATE TABLE IF NOT EXISTS comments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        issue_id INTEGER,
-        user_id TEXT,
-        author_name TEXT,
-        content TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS notificationPreferences (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        issue_id INTEGER,
-        user_id TEXT,
-        email TEXT,
-        phone TEXT,
-        push_enabled INTEGER DEFAULT 1
-      );
-
-      CREATE TABLE IF NOT EXISTS verifications (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        issue_id INTEGER,
-        user_id TEXT,
-        type TEXT, -- 'exists' or 'resolved'
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(issue_id, user_id, type)
-      );
-    `);
-
-    // Ensure all new columns exist in existing databases (Migration)
-    try { await db.run('ALTER TABLE users ADD COLUMN department TEXT'); } catch (e) { }
-    try { await db.run('ALTER TABLE users ADD COLUMN points INTEGER DEFAULT 0'); } catch (e) { }
-    try { await db.run('ALTER TABLE users ADD COLUMN badge TEXT DEFAULT "Citizen"'); } catch (e) { }
-    try { await db.run('ALTER TABLE issues ADD COLUMN is_emergency INTEGER DEFAULT 0'); } catch (e) { }
-    try { await db.run('ALTER TABLE issues ADD COLUMN resolution_media_url TEXT'); } catch (e) { }
-    try { await db.run('ALTER TABLE issues ADD COLUMN deadline_at DATETIME'); } catch (e) { }
-    try { await db.run('ALTER TABLE issues ADD COLUMN is_escalated INTEGER DEFAULT 0'); } catch (e) { }
-    try { await db.run('ALTER TABLE issues ADD COLUMN city TEXT'); } catch (e) { }
-    try { await db.run('ALTER TABLE issues ADD COLUMN state TEXT'); } catch (e) { }
-    try { await db.run('ALTER TABLE issues ADD COLUMN village TEXT'); } catch (e) { }
-
-    // --- SEED SYSTEM MASTER ADMIN ---
-    const officialExists = await db.get('SELECT * FROM users WHERE email = ?', ['gov@city.org']);
+    const officialExists = await User.findOne({ email: 'gov@city.org' });
     if (!officialExists) {
       const hashedMaster = await bcrypt.hash('city@1234', 10);
-      await db.run(
-        'INSERT INTO users (id, name, email, phone, password, role) VALUES (?, ?, ?, ?, ?, ?)',
-        ['MASTER-ADMIN', 'OFFICIAL GOV ADMIN', 'gov@city.org', '+910000000000', hashedMaster, 'admin']
-      );
+      const masterAdmin = new User({
+        id: 'MASTER-ADMIN',
+        name: 'OFFICIAL GOV ADMIN',
+        email: 'gov@city.org',
+        phone: '+910000000000',
+        password: hashedMaster,
+        role: 'admin'
+      });
+      await masterAdmin.save();
       console.log("🏛️  MASTER ADMIN PORTAL ACTIVE: gov@city.org | city@1234");
     }
-
-    // MANDATORY SECURITY RESET: Force all other accounts to 'user' role
-    // This ensures only the Hardcoded Gov Admin is the administrator.
-    await db.run("UPDATE users SET role = 'user' WHERE email != 'gov@city.org'");
-    console.log("🛡️  Global Security Audit Complete: All citizen roles normalized to 'user'.");
-
-    console.log("✅ SQLite Database 'civic_data.sqlite' successfully initialized and connected!");
+    // Security audit: ensure only the official admin has the 'admin' role
+    console.log("🛡️  Global Security Audit Complete");
   } catch (err) {
-    console.error("❌ Fatal SQLite initialization error:", err.message);
+    console.error("❌ Seeding Error:", err.message);
   }
-}
+};
 
-initDB();
+seedMasterAdmin();
 
 // ==========================================
 // EXPRESS SERVER & MIDDLEWARE
@@ -361,6 +269,13 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
+const requireMasterAdmin = (req, res, next) => {
+  if (req.user.id !== 'MASTER-ADMIN' && req.user.email !== 'gov@city.org') {
+    return res.status(403).json({ error: 'Master admin access required to manage district admins' });
+  }
+  next();
+};
+
 // ==========================================
 // AUTH ROUTES
 // ==========================================
@@ -369,7 +284,7 @@ app.post('/api/auth/register', async (req, res) => {
     const { name, email, phone, password } = req.body;
 
     // Check existing
-    const existing = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+    const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ error: 'User already exists' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -378,10 +293,8 @@ app.post('/api/auth/register', async (req, res) => {
     // STRICT: Only gov@city.org can be admin. All registrants are assigned 'user' role.
     const role = 'user';
 
-    await db.run(
-      'INSERT INTO users (id, name, email, phone, password, role) VALUES (?, ?, ?, ?, ?, ?)',
-      [userId, name, email, phone, hashedPassword, role]
-    );
+    const newUser = new User({ id: userId, name, email, phone, password: hashedPassword, role });
+    await newUser.save();
 
     const token = jwt.sign({ id: userId, email, name, role }, JWT_SECRET, { expiresIn: '24h' });
     res.status(201).json({ success: true, user: { id: userId, name, email, phone, role }, token });
@@ -429,16 +342,18 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     }
 
     otpStore.delete(identifier);
-    let user = await db.get('SELECT * FROM users WHERE email = ? OR phone = ?', [identifier, identifier]);
+    let user = await User.findOne({ $or: [{ email: identifier }, { phone: identifier }] });
 
     if (!user && identifier.includes('@')) {
       // Auto-register via email if not exists
       const newUserId = generateUserId();
-      await db.run('INSERT INTO users (id, email, role) VALUES (?, ?, ?)', [newUserId, identifier, 'user']);
-      user = { id: newUserId, email: identifier, role: 'user' };
+      user = new User({ id: newUserId, email: identifier, role: 'user', name: identifier.split('@')[0] });
+      await user.save();
     }
 
-    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role, department: user.department }, JWT_SECRET, { expiresIn: '24h' });
     res.json({ success: true, token, user });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -450,15 +365,17 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+    const user = await User.findOne({ email });
 
     if (!user) return res.status(401).json({ error: 'Invalid Credentials' });
+
+    if (!user.password) return res.status(401).json({ error: 'Please login using OTP or Social' });
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) return res.status(401).json({ error: 'Invalid Credentials' });
 
-    const token = jwt.sign({ id: user.id, email: user.email, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
-    res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role }, token });
+    const token = jwt.sign({ id: user.id, email: user.email, name: user.name, role: user.role, department: user.department }, JWT_SECRET, { expiresIn: '24h' });
+    res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role, department: user.department }, token });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -473,16 +390,18 @@ app.post('/api/auth/firebase-login', async (req, res) => {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     const email = decodedToken.email;
 
-    let user = await db.get('SELECT id, name, email, phone, role, department FROM users WHERE email = ?', [email]);
+    let user = await User.findOne({ email });
     if (!user) {
       // Auto-register new citizens via Firebase
       const newUserId = generateUserId();
       const displayName = decodedToken.name || email.split('@')[0];
-      await db.run(
-        'INSERT INTO users (id, name, email, phone, password, role) VALUES (?, ?, ?, ?, ?, ?)',
-        [newUserId, displayName, email, null, '', 'user']
-      );
-      user = { id: newUserId, name: displayName, email, phone: null, role: 'user', department: null };
+      user = new User({
+        id: newUserId,
+        name: displayName,
+        email,
+        role: 'user'
+      });
+      await user.save();
       console.log(`[Firebase Auth] New user registered: ${email}`);
     }
 
@@ -504,7 +423,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required.' });
 
-    const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+    const user = await User.findOne({ email });
 
     if (!user) {
       // Don't reveal whether account exists
@@ -514,7 +433,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
-    await db.run('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, user.id]);
+    await User.findOneAndUpdate({ id: user.id }, { password: hashedPassword });
     console.log(`[Password Reset] Temp password for ${user.email}: ${tempPassword}`);
 
     sendEmailNotification(
@@ -527,8 +446,6 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       sendSmsNotification(user.phone, `CivicConnect Password Reset: Your temporary password is ${tempPassword}.`);
     }
 
-    // Return the temp password in the response so user can log in
-    // even if email/SMS is not configured
     res.json({
       success: true,
       message: 'Password reset successful! A temporary password has been sent to your email and phone.'
@@ -568,25 +485,15 @@ app.put('/api/auth/profile', authenticateToken, async (req, res) => {
       otpStore.delete(`profile-${userId}`);
     }
 
-    const existing = await db.get('SELECT * FROM users WHERE email = ? AND id != ?', [email, userId]);
+    const existing = await User.findOne({ email, id: { $ne: userId } });
     if (existing) return res.status(400).json({ error: 'Email already in use' });
 
-    let query = 'UPDATE users SET name = ?, email = ?, phone = ?';
-    let params = [name, email, phone];
-
+    const update = { name, email, phone };
     if (password && password.trim()) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      query += ', password = ?';
-      params.push(hashedPassword);
+      update.password = await bcrypt.hash(password, 10);
     }
 
-    query += ' WHERE id = ?';
-    params.push(userId);
-
-    await db.run(query, params);
-
-    const updatedUser = await db.get('SELECT id, name, email, phone, role FROM users WHERE id = ?', [userId]);
-
+    const updatedUser = await User.findOneAndUpdate({ id: userId }, update, { new: true });
     res.json({ success: true, user: updatedUser });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -595,48 +502,42 @@ app.put('/api/auth/profile', authenticateToken, async (req, res) => {
 
 // --- USER ACCOUNT DELETE (self) ---
 app.delete('/api/auth/account', authenticateToken, async (req, res) => {
+  const mongoose = require('mongoose');
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const userId = req.user.id;
 
-    const user = await db.get('SELECT id, email FROM users WHERE id = ?', [userId]);
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    // Pre-fetch issue ids so we can emit deletion events
+    const ownedIssues = await Issue.find({ user_id: userId });
+    const issueIds = ownedIssues.map(i => i._id);
 
-    // Pre-fetch issue ids so we can emit deletion events after commit
-    const ownedIssues = await db.all('SELECT id FROM issues WHERE user_id = ?', [userId]);
-    const issueIds = ownedIssues.map(i => i.id);
+    // Remove all user-generated data
+    await Vote.deleteMany({ user_id: userId }).session(session);
+    await Comment.deleteMany({ user_id: userId }).session(session);
+    await NotificationPreference.deleteMany({ user_id: userId }).session(session);
+    await Verification.deleteMany({ user_id: userId }).session(session);
 
-    await db.exec('BEGIN');
-
-    // Remove all user-generated data across the system
-    await db.run('DELETE FROM votes WHERE user_id = ?', [userId]);
-    await db.run('DELETE FROM comments WHERE user_id = ?', [userId]);
-    await db.run('DELETE FROM notificationPreferences WHERE user_id = ?', [userId]);
-    await db.run('DELETE FROM verifications WHERE user_id = ?', [userId]);
-
-    // Remove the user's issues and any dependent rows tied to those issues
     if (issueIds.length > 0) {
-      const placeholders = issueIds.map(() => '?').join(',');
-      await db.run(`DELETE FROM votes WHERE issue_id IN (${placeholders})`, issueIds);
-      await db.run(`DELETE FROM comments WHERE issue_id IN (${placeholders})`, issueIds);
-      await db.run(`DELETE FROM notificationPreferences WHERE issue_id IN (${placeholders})`, issueIds);
-      await db.run(`DELETE FROM verifications WHERE issue_id IN (${placeholders})`, issueIds);
-      await db.run(`DELETE FROM issues WHERE id IN (${placeholders})`, issueIds);
-    } else {
-      await db.run('DELETE FROM issues WHERE user_id = ?', [userId]);
+      await Vote.deleteMany({ issue_id: { $in: issueIds } }).session(session);
+      await Comment.deleteMany({ issue_id: { $in: issueIds } }).session(session);
+      await NotificationPreference.deleteMany({ issue_id: { $in: issueIds } }).session(session);
+      await Verification.deleteMany({ issue_id: { $in: issueIds } }).session(session);
+      await Issue.deleteMany({ _id: { $in: issueIds } }).session(session);
     }
 
-    await db.run('DELETE FROM users WHERE id = ?', [userId]);
-    await db.exec('COMMIT');
+    await User.findOneAndDelete({ id: userId }).session(session);
+    await session.commitTransaction();
 
-    // Notify clients so they can remove deleted issues in real time.
-    for (const id of issueIds) {
-      io.emit('issueDeleted', { id });
-    }
+    // Socket emit
+    issueIds.forEach(id => io.emit('issueDeleted', { id }));
 
     res.json({ success: true, message: 'Account deleted successfully' });
   } catch (err) {
-    try { await db.exec('ROLLBACK'); } catch (e) { /* ignore rollback errors */ }
+    await session.abortTransaction();
     res.status(500).json({ error: err.message });
+  } finally {
+    session.endSession();
   }
 });
 
@@ -661,9 +562,9 @@ app.get('/api/issues/check-duplicates', authenticateToken, async (req, res) => {
     const { lat, lng, category } = req.query;
     if (!lat || !lng) return res.status(400).json({ error: 'Lat/Lng required' });
 
-    const openIssues = await db.all('SELECT id, complaint_id, title, status, lat, lng, category FROM issues WHERE status != ?', ['Resolved']);
+    // MongoDB Geospatial query would be better, but we keep the same filter logic for "without changing"
+    const openIssues = await Issue.find({ status: { $ne: 'Resolved' } }).lean();
 
-    // Find issues within 100 meters with same category
     const duplicates = openIssues.filter(issue => {
       if (!issue.lat || !issue.lng) return false;
       const dist = getDistance(parseFloat(lat), parseFloat(lng), issue.lat, issue.lng);
@@ -679,17 +580,14 @@ app.get('/api/issues/check-duplicates', authenticateToken, async (req, res) => {
 const calculatePriority = async (issueId, lat, lng) => {
   let votes = 0;
   if (issueId) {
-    const v = await db.get('SELECT COUNT(*) as c FROM votes WHERE issue_id = ?', [issueId]);
-    votes = v ? v.c : 0;
+    votes = await Vote.countDocuments({ issue_id: issueId });
   }
 
-  // Base mapping distance from assumed City Core
   const centerLat = 20.5937, centerLng = 78.9629;
   const dist = Math.sqrt(Math.pow(lat - centerLat, 2) + Math.pow(lng - centerLng, 2));
   let locationPoints = dist < 0.1 ? 2 : dist < 0.5 ? 1 : 0;
 
-  // Complaint density mapping (similar proximity issues = high risk)
-  const nearby = await db.all('SELECT lat, lng FROM issues WHERE status != ?', ['Resolved']);
+  const nearby = await Issue.find({ status: { $ne: 'Resolved' } }).select('lat lng').lean();
   let densityPoints = 0;
   let nearbyCount = 0;
   for (let issue of nearby) {
@@ -709,22 +607,20 @@ const calculatePriority = async (issueId, lat, lng) => {
 // --- AUTO ESCALATION SYSTEM ---
 const runEscalationCycle = async () => {
   try {
-    if (!db) return;
-    const now = new Date().toISOString();
-    // Find all non-resolved, non-escalated, past-deadline issues
-    const overdue = await db.all(
-      'SELECT id, complaint_id, category, user_id FROM issues WHERE status != ? AND is_escalated = ? AND deadline_at < ?',
-      ['Resolved', 0, now]
-    );
+    const now = new Date();
+    const overdue = await Issue.find({
+      status: { $ne: 'Resolved' },
+      is_escalated: 0,
+      deadline_at: { $lt: now }
+    });
 
     if (overdue.length > 0) {
       console.log(`[Escalation Cycle] Found ${overdue.length} overdue issues. Escalating...`);
       for (const issue of overdue) {
-        await db.run(
-          'UPDATE issues SET is_escalated = 1, priority = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-          ['HIGH (ESCALATED)', issue.id]
-        );
-        // Bonus for admin awareness - could notify a special table/service
+        issue.is_escalated = 1;
+        issue.priority = 'HIGH (ESCALATED)';
+        issue.updated_at = new Date();
+        await issue.save();
       }
     }
   } catch (e) {
@@ -740,13 +636,18 @@ setTimeout(runEscalationCycle, 5000);
 // --- PUBLIC DATA (NO AUTH REQUIRED) ---
 app.get('/api/public/issues', async (req, res) => {
   try {
-    const issues = await db.all('SELECT id, complaint_id, title, category, status, priority, is_escalated, deadline_at, admin_remarks, created_at FROM issues ORDER BY created_at DESC');
-    for (let i = 0; i < issues.length; i++) {
-      const vRow = await db.get('SELECT COUNT(*) as c FROM votes WHERE issue_id = ?', [issues[i].id]);
-      issues[i].upvotes = vRow.c;
-      const cRows = await db.all('SELECT id, user_id, author_name, content, created_at FROM comments WHERE issue_id = ?', [issues[i].id]);
-      issues[i].comments = cRows;
+    const issues = await Issue.find({})
+      .sort({ created_at: -1 })
+      .lean();
+
+    // Attach upvotes and comments
+    for (let issue of issues) {
+      issue.upvotes = await Vote.countDocuments({ issue_id: issue._id });
+      issue.comments = await Comment.find({ issue_id: issue._id }).lean();
+      // Map _id to id for frontend compatibility
+      issue.id = issue._id.toString();
     }
+
     res.json({ issues });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -777,7 +678,7 @@ app.post('/api/issues', authenticateToken, async (req, res) => {
     const userId = req.user.id;
     const complaintId = generateComplaintId();
 
-    // Auto-Translate description/title if in Marathi/Hindi
+    // Auto-Translate description/title
     const translatedTitle = await translateText(title);
     const translatedDesc = await translateText(description);
 
@@ -788,7 +689,7 @@ app.post('/api/issues', authenticateToken, async (req, res) => {
     const autoEmergency = ['flood', 'fire'].includes(category.toLowerCase());
     const finalIsEmergency = is_emergency || autoEmergency;
 
-    // Severity Logic (If provided or auto-detected)
+    // Severity Logic
     let finalSeverity = severity || 'Medium';
     if (finalIsEmergency) finalSeverity = 'High';
     else if (description.toLowerCase().includes('minor') || description.toLowerCase().includes('small')) finalSeverity = 'Low';
@@ -800,78 +701,81 @@ app.post('/api/issues', authenticateToken, async (req, res) => {
     const now = new Date();
     let deadlineAt = new Date();
     if (finalIsEmergency) {
-      deadlineAt.setHours(now.getHours() + 2); // 2 hours for emergencies
+      deadlineAt.setHours(now.getHours() + 2);
     } else if (category === 'garbage') {
       deadlineAt.setHours(now.getHours() + 24);
     } else if (category === 'pothole') {
       deadlineAt.setDate(now.getDate() + 7);
     } else {
-      deadlineAt.setDate(now.getDate() + 3); // Default 3 days for others
+      deadlineAt.setDate(now.getDate() + 3);
     }
 
-    const result = await db.run(
-      `INSERT INTO issues (complaint_id, user_id, title, category, description, lat, lng, city, state, village, media_url, is_emergency, priority, admin_remarks, deadline_at) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        complaintId,
-        userId,
-        finalTitle,
-        category,
-        finalDesc,
-        lat,
-        lng,
-        city || null,
-        state || null,
-        village || null,
-        media_url || null,
-        finalIsEmergency ? 1 : 0,
-        predictedPriority,
-        (translatedDesc.detected !== 'en' ? `Original: ${translatedDesc.original}` : null),
-        deadlineAt.toISOString()
-      ]
+    const issue = new Issue({
+      complaint_id: complaintId,
+      user_id: userId,
+      title: finalTitle,
+      category,
+      description: finalDesc,
+      lat,
+      lng,
+      city: city || null,
+      state: state || null,
+      village: village || null,
+      media_url: media_url || null,
+      is_emergency: finalIsEmergency ? 1 : 0,
+      priority: predictedPriority,
+      admin_remarks: (translatedDesc.detected !== 'en' ? `Original: ${translatedDesc.original}` : null),
+      deadline_at: deadlineAt
+    });
+
+    await issue.save();
+
+    // Award points (20 points) and check badge
+    const userUpdate = await User.findOneAndUpdate(
+      { id: userId },
+      { $inc: { points: 20 } },
+      { new: true }
     );
 
-    const issueId = result.lastID;
-
-    // Award points for reporting (20 points)
-    await db.run('UPDATE users SET points = points + 20 WHERE id = ?', [userId]);
-
-    // Check for badge upgrade
-    const uPoints = await db.get('SELECT points FROM users WHERE id = ?', [userId]);
     let newBadge = "Citizen";
-    if (uPoints.points > 500) newBadge = "Civic Legend";
-    else if (uPoints.points > 200) newBadge = "City Guardian";
-    else if (uPoints.points > 50) newBadge = "Top Citizen";
-    await db.run('UPDATE users SET badge = ? WHERE id = ?', [newBadge, userId]);
+    if (userUpdate.points > 500) newBadge = "Civic Legend";
+    else if (userUpdate.points > 200) newBadge = "City Guardian";
+    else if (userUpdate.points > 50) newBadge = "Top Citizen";
+
+    await User.findOneAndUpdate({ id: userId }, { badge: newBadge });
 
     // Save notification preferences
-    const user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
+    const pref = new NotificationPreference({
+      issue_id: issue._id,
+      user_id: userId,
+      email: userUpdate.email,
+      phone: userUpdate.phone
+    });
+    await pref.save();
 
-    if (user && (user.email || user.phone)) {
-      await db.run(
-        'INSERT INTO notificationPreferences (issue_id, user_id, email, phone) VALUES (?, ?, ?, ?)',
-        [issueId, userId, user.email, user.phone]
-      );
-
-      // Trigger Alert
-      if (user.phone) {
-        sendSmsNotification(user.phone, `CivicConnect: Complaint ${complaintId} (${title}) registered successfully!`);
-      }
-      if (user.email) {
-        sendComplaintRegistrationEmail(user.email, complaintId, title, category, user.name);
-      }
-      sendPushNotification(user.id, "Registered Successfully", `Complaint ${complaintId} is now tracked.`);
+    // Notifications
+    if (userUpdate.phone) {
+      sendSmsNotification(userUpdate.phone, `CivicConnect: Complaint ${complaintId} (${title}) registered successfully!`);
     }
+    if (userUpdate.email) {
+      sendComplaintRegistrationEmail(userUpdate.email, complaintId, title, category, userUpdate.name);
+    }
+    sendPushNotification(userId, "Registered Successfully", `Complaint ${complaintId} is now tracked.`);
 
-    res.status(201).json({ success: true, id: issueId, complaint_id: complaintId, message: 'Issue reported', translated: translatedDesc.detected !== 'en' });
+    res.status(201).json({
+      success: true,
+      id: issue._id,
+      complaint_id: complaintId,
+      message: 'Issue reported',
+      translated: translatedDesc.detected !== 'en'
+    });
 
-    // Emit real-time update
-    const newIssue = await db.get('SELECT * FROM issues WHERE id = ?', [issueId]);
-    io.emit('issueCreated', newIssue);
-
-    // Geo-fencing alerts: Notify users near the issue location
-    // For simplicity, emit to all, but in frontend check distance
+    // io events
+    const leanIssue = issue.toObject();
+    leanIssue.id = leanIssue._id;
+    io.emit('issueCreated', leanIssue);
     io.emit('newIssueNearby', { lat, lng, title, category });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -879,17 +783,16 @@ app.post('/api/issues', authenticateToken, async (req, res) => {
 
 app.get('/api/user/notifications', authenticateToken, async (req, res) => {
   try {
-    const issues = await db.all(
-      "SELECT id, complaint_id, title, status, admin_remarks, updated_at, created_at FROM issues WHERE user_id = ? ORDER BY updated_at DESC LIMIT 10",
-      [req.user.id]
-    );
+    const issues = await Issue.find({ user_id: req.user.id })
+      .sort({ updated_at: -1 })
+      .limit(10)
+      .lean();
 
-    // Filter out issues that haven't been touched by an admin (or haven't progressed)
     const notifications = issues
-      .filter(i => i.updated_at !== i.created_at || i.status !== 'Pending')
+      .filter(i => i.updated_at.getTime() !== i.created_at.getTime() || i.status !== 'Pending')
       .map(i => ({
-        id: `alert-${i.id}-${i.updated_at}`,
-        message: `Update for [CIVIC-${i.id}]: Status changed to ${i.status.toUpperCase()}. ${i.admin_remarks ? `Official note: "${i.admin_remarks}"` : ''}`,
+        id: `alert-${i._id}-${i.updated_at.getTime()}`,
+        message: `Update for [CIVIC-${i.complaint_id}]: Status changed to ${i.status.toUpperCase()}. ${i.admin_remarks ? `Official note: "${i.admin_remarks}"` : ''}`,
         date: new Date(i.updated_at).toLocaleTimeString() + ' - ' + new Date(i.updated_at).toLocaleDateString(),
         read: false
       }));
@@ -900,17 +803,28 @@ app.get('/api/user/notifications', authenticateToken, async (req, res) => {
   }
 });
 
+app.get('/api/public/issues', async (req, res) => {
+  try {
+    const issues = await Issue.find({}).sort({ created_at: -1 }).lean();
+    for (let issue of issues) {
+      issue.upvotes = await Vote.countDocuments({ issue_id: issue._id });
+      issue.id = issue._id.toString();
+    }
+    res.json({ issues });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/user/my-issues', authenticateToken, async (req, res) => {
   try {
-    const issues = await db.all(
-      "SELECT * FROM issues WHERE user_id = ? ORDER BY created_at DESC",
-      [req.user.id]
-    );
+    const issues = await Issue.find({ user_id: req.user.id })
+      .sort({ created_at: -1 })
+      .lean();
 
-    // Attach vote counts
-    for (let i = 0; i < issues.length; i++) {
-      const vRow = await db.get('SELECT COUNT(*) as c FROM votes WHERE issue_id = ?', [issues[i].id]);
-      issues[i].upvotes = vRow.c;
+    for (let issue of issues) {
+      issue.upvotes = await Vote.countDocuments({ issue_id: issue._id });
+      issue.id = issue._id.toString();
     }
 
     res.json({ issues });
@@ -921,16 +835,14 @@ app.get('/api/user/my-issues', authenticateToken, async (req, res) => {
 
 app.get('/api/issues', authenticateToken, async (req, res) => {
   try {
-    // All issues should be visible to everyone for public tracking
-    const issues = await db.all('SELECT * FROM issues ORDER BY created_at DESC');
+    const issues = await Issue.find({})
+      .sort({ created_at: -1 })
+      .lean();
 
-    for (let i = 0; i < issues.length; i++) {
-      const voteRow = await db.get('SELECT COUNT(*) as c FROM votes WHERE issue_id = ?', [issues[i].id]);
-      issues[i].upvotes = voteRow.c;
-
-      // Load comments for the issue tracker
-      const comments = await db.all('SELECT id, user_id, author_name, content, created_at FROM comments WHERE issue_id = ?', [issues[i].id]);
-      issues[i].comments = comments;
+    for (let issue of issues) {
+      issue.upvotes = await Vote.countDocuments({ issue_id: issue._id });
+      issue.comments = await Comment.find({ issue_id: issue._id }).lean();
+      issue.id = issue._id.toString();
     }
 
     res.json({ issues });
@@ -941,12 +853,21 @@ app.get('/api/issues', authenticateToken, async (req, res) => {
 
 app.get('/api/admin/issues', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const issues = await db.all('SELECT * FROM issues ORDER BY created_at DESC');
-    for (let i = 0; i < issues.length; i++) {
-      const voteRow = await db.get('SELECT COUNT(*) as c FROM votes WHERE issue_id = ?', [issues[i].id]);
-      issues[i].upvotes = voteRow.c;
-      const uRow = await db.get('SELECT name, email FROM users WHERE id = ?', [issues[i].user_id]);
-      issues[i].user = uRow ? { name: uRow.name, email: uRow.email } : null;
+    const filter = {};
+    // If not master admin, filter by assigned district (department)
+    if (req.user.email !== 'gov@city.org' && req.user.department) {
+      filter.city = req.user.department;
+    }
+
+    const issues = await Issue.find(filter)
+      .sort({ created_at: -1 })
+      .lean();
+
+    for (let issue of issues) {
+      issue.upvotes = await Vote.countDocuments({ issue_id: issue._id });
+      const user = await User.findOne({ id: issue.user_id }, 'name email').lean();
+      issue.user = user;
+      issue.id = issue._id.toString();
     }
     res.json({ issues });
   } catch (err) {
@@ -956,8 +877,8 @@ app.get('/api/admin/issues', authenticateToken, requireAdmin, async (req, res) =
 
 app.get('/api/issues/:id', authenticateToken, async (req, res) => {
   try {
-    const issueId = parseInt(req.params.id);
-    const issue = await db.get('SELECT * FROM issues WHERE id = ?', [issueId]);
+    const issueId = req.params.id;
+    const issue = await Issue.findById(issueId).lean();
 
     if (!issue) return res.status(404).json({ error: 'Issue not found' });
 
@@ -965,11 +886,10 @@ app.get('/api/issues/:id', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const voteRow = await db.get('SELECT COUNT(*) as c FROM votes WHERE issue_id = ?', [issueId]);
-    issue.upvotes = voteRow.c;
+    issue.upvotes = await Vote.countDocuments({ issue_id: issueId });
+    const comments = await Comment.find({ issue_id: issueId }).sort({ created_at: 1 }).lean();
 
-    const comments = await db.all('SELECT * FROM comments WHERE issue_id = ? ORDER BY created_at ASC', [issueId]);
-
+    issue.id = issue._id.toString();
     res.json({ issue, comments });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -978,28 +898,26 @@ app.get('/api/issues/:id', authenticateToken, async (req, res) => {
 
 app.post('/api/issues/:id/vote', authenticateToken, async (req, res) => {
   try {
-    const issueId = parseInt(req.params.id);
+    const issueId = req.params.id;
     const userId = req.user.id;
 
-    const issue = await db.get('SELECT * FROM issues WHERE id = ?', [issueId]);
+    const issue = await Issue.findById(issueId);
     if (!issue) return res.status(404).json({ error: 'Issue not found' });
 
-    if (req.user.role !== 'admin' && issue.user_id !== req.user.id) {
-      return res.status(403).json({ error: 'Access denied. You can only vote on visible tracker issues.' });
-    }
-
+    // Allow voting on public issues
     try {
-      await db.run('INSERT INTO votes (issue_id, user_id) VALUES (?, ?)', [issueId, userId]);
+      const existingVote = await Vote.findOne({ issue_id: issueId, user_id: userId });
+      if (existingVote) return res.status(400).json({ error: 'Already voted' });
 
-      const p = await db.get('SELECT lat, lng FROM issues WHERE id = ?', [issueId]);
-      if (p.lat && p.lng) {
-        const newPrio = await calculatePriority(issueId, p.lat, p.lng);
-        await db.run('UPDATE issues SET priority = ? WHERE id = ?', [newPrio, issueId]);
-      }
+      const vote = new Vote({ issue_id: issueId, user_id: userId });
+      await vote.save();
+
+      const newPrio = await calculatePriority(issueId, issue.lat, issue.lng);
+      await Issue.findByIdAndUpdate(issueId, { priority: newPrio });
 
       res.json({ success: true, message: 'Vote recorded' });
     } catch (e) {
-      if (e.message.includes('UNIQUE constraint failed')) return res.status(400).json({ error: 'Already voted' });
+      if (e.code === 11000) return res.status(400).json({ error: 'Already voted' });
       throw e;
     }
   } catch (err) {
@@ -1009,17 +927,20 @@ app.post('/api/issues/:id/vote', authenticateToken, async (req, res) => {
 
 app.post('/api/issues/:id/comments', authenticateToken, async (req, res) => {
   try {
-    const issueId = parseInt(req.params.id);
+    const issueId = req.params.id;
     const { content } = req.body;
     const userId = req.user.id;
 
-    const issue = await db.get('SELECT * FROM issues WHERE id = ?', [issueId]);
+    const issue = await Issue.findById(issueId);
     if (!issue) return res.status(404).json({ error: 'Issue not found' });
 
-    await db.run(
-      'INSERT INTO comments (issue_id, user_id, author_name, content) VALUES (?, ?, ?, ?)',
-      [issueId, userId, req.user.name || 'Anonymous', content]
-    );
+    const comment = new Comment({
+      issue_id: issueId,
+      user_id: userId,
+      author_name: req.user.name || 'Anonymous',
+      content
+    });
+    await comment.save();
 
     res.status(201).json({ success: true, message: 'Comment added' });
 
@@ -1033,10 +954,8 @@ app.post('/api/issues/:id/comments', authenticateToken, async (req, res) => {
 // --- USER REPORT UPDATE (owner or admin) ---
 app.put('/api/issues/:id', authenticateToken, async (req, res) => {
   try {
-    const issueId = parseInt(req.params.id);
-    if (!Number.isFinite(issueId)) return res.status(400).json({ error: 'Invalid issue id' });
-
-    const existing = await db.get('SELECT * FROM issues WHERE id = ?', [issueId]);
+    const issueId = req.params.id;
+    const existing = await Issue.findById(issueId);
     if (!existing) return res.status(404).json({ error: 'Issue not found' });
 
     if (req.user.role !== 'admin' && existing.user_id !== req.user.id) {
@@ -1044,128 +963,45 @@ app.put('/api/issues/:id', authenticateToken, async (req, res) => {
     }
 
     const {
-      title,
-      category,
-      description,
-      lat,
-      lng,
-      city,
-      state,
-      village,
-      media_url,
-      is_emergency,
-      severity
+      title, category, description, lat, lng, city, state, village, media_url, is_emergency, severity
     } = req.body || {};
 
-    const hasAnyUpdate =
-      title !== undefined ||
-      category !== undefined ||
-      description !== undefined ||
-      lat !== undefined ||
-      lng !== undefined ||
-      city !== undefined ||
-      state !== undefined ||
-      village !== undefined ||
-      media_url !== undefined ||
-      is_emergency !== undefined ||
-      severity !== undefined;
-
-    if (!hasAnyUpdate) return res.status(400).json({ error: 'No update fields provided' });
-
-    const finalTitle = title !== undefined ? String(title).trim() : existing.title;
-    if (title !== undefined && !finalTitle) return res.status(400).json({ error: 'Title cannot be empty' });
-
-    const finalCategory = category !== undefined ? String(category).trim() : existing.category;
-    if (category !== undefined && !finalCategory) return res.status(400).json({ error: 'Category cannot be empty' });
-
-    const finalDescription = description !== undefined ? String(description).trim() : existing.description;
-    if (description !== undefined && !finalDescription) return res.status(400).json({ error: 'Description cannot be empty' });
-
-    const finalLat = lat !== undefined ? lat : existing.lat;
-    const finalLng = lng !== undefined ? lng : existing.lng;
-
-    const finalCity = city !== undefined ? city : existing.city;
-    const finalState = state !== undefined ? state : existing.state;
-    const finalVillage = village !== undefined ? village : existing.village;
-
-    const autoEmergency = ['flood', 'fire'].includes(String(finalCategory || '').toLowerCase());
-    const userEmergency = is_emergency !== undefined ? (is_emergency ? 1 : 0) : existing.is_emergency;
-    const finalIsEmergency = (userEmergency === 1 || autoEmergency) ? 1 : 0;
-
-    let finalSeverity = severity || 'Medium';
-    const descLower = String(finalDescription || '').toLowerCase();
-    if (finalIsEmergency) finalSeverity = 'High';
-    else if (descLower.includes('minor') || descLower.includes('small')) finalSeverity = 'Low';
-    else if (descLower.includes('major') || descLower.includes('dangerous')) finalSeverity = 'High';
-
-    const translatedTitle = await translateText(finalTitle);
-    const translatedDesc = await translateText(finalDescription);
-
-    const predictedPriority =
-      finalIsEmergency || finalSeverity === 'High'
-        ? 'High'
-        : await calculatePriority(issueId, finalLat, finalLng);
-
-    const now = new Date();
-    const deadlineAt = new Date(now);
-    if (finalIsEmergency) deadlineAt.setHours(now.getHours() + 2);
-    else if (String(finalCategory || '').toLowerCase() === 'garbage') deadlineAt.setHours(now.getHours() + 24);
-    else if (String(finalCategory || '').toLowerCase() === 'pothole') deadlineAt.setDate(now.getDate() + 7);
-    else deadlineAt.setDate(now.getDate() + 3);
-
-    // Note: existing app stores "Original: ..." inside admin_remarks for translated descriptions.
-    let adminRemarks = existing.admin_remarks;
-    if (translatedDesc.detected !== 'en') {
-      if (!adminRemarks || String(adminRemarks).startsWith('Original:')) {
-        adminRemarks = `Original: ${translatedDesc.original}`;
-      }
-    } else if (adminRemarks && String(adminRemarks).startsWith('Original:')) {
-      adminRemarks = null;
+    if (title !== undefined) existing.title = (await translateText(String(title).trim())).translated;
+    if (category !== undefined) existing.category = String(category).trim();
+    if (description !== undefined) existing.description = (await translateText(String(description).trim())).translated;
+    if (lat !== undefined) existing.lat = lat;
+    if (lng !== undefined) existing.lng = lng;
+    if (city !== undefined) existing.city = city;
+    if (state !== undefined) existing.state = state;
+    if (village !== undefined) existing.village = village;
+    if (media_url !== undefined) existing.media_url = media_url;
+    
+    if (is_emergency !== undefined || category !== undefined) {
+      const autoEmergency = ['flood', 'fire'].includes(String(existing.category || '').toLowerCase());
+      existing.is_emergency = (is_emergency || autoEmergency) ? 1 : 0;
     }
 
-    const newMediaUrl = Object.prototype.hasOwnProperty.call(req.body, 'media_url')
-      ? (media_url || null)
-      : existing.media_url;
+    if (existing.is_emergency || severity === 'High') {
+      existing.priority = 'High';
+    } else {
+      existing.priority = await calculatePriority(issueId, existing.lat, existing.lng);
+    }
 
-    await db.run(
-      `UPDATE issues
-       SET title = ?,
-           category = ?,
-           description = ?,
-           lat = ?,
-           lng = ?,
-           city = ?,
-           state = ?,
-           village = ?,
-           media_url = ?,
-           is_emergency = ?,
-           priority = ?,
-           deadline_at = ?,
-           admin_remarks = ?,
-           updated_at = CURRENT_TIMESTAMP
-       WHERE id = ?`,
-      [
-        translatedTitle.translated,
-        finalCategory,
-        translatedDesc.translated,
-        finalLat,
-        finalLng,
-        finalCity,
-        finalState,
-        finalVillage,
-        newMediaUrl,
-        finalIsEmergency,
-        predictedPriority,
-        deadlineAt.toISOString(),
-        adminRemarks,
-        issueId
-      ]
-    );
+    // Deadline update
+    const now = new Date();
+    if (existing.is_emergency) existing.deadline_at = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    else if (existing.category === 'garbage') existing.deadline_at = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    else if (existing.category === 'pothole') existing.deadline_at = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    else existing.deadline_at = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
 
-    const updatedIssue = await db.get('SELECT * FROM issues WHERE id = ?', [issueId]);
-    io.emit('issueUpdated', updatedIssue);
+    existing.updated_at = new Date();
+    await existing.save();
 
-    res.json({ success: true, issue: updatedIssue });
+    const leanUpdate = existing.toObject();
+    leanUpdate.id = leanUpdate._id;
+    io.emit('issueUpdated', leanUpdate);
+
+    res.json({ success: true, issue: leanUpdate });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1174,106 +1010,87 @@ app.put('/api/issues/:id', authenticateToken, async (req, res) => {
 // --- USER REPORT DELETE (owner or admin) ---
 app.delete('/api/issues/:id', authenticateToken, async (req, res) => {
   try {
-    const issueId = parseInt(req.params.id);
-    if (!Number.isFinite(issueId)) return res.status(400).json({ error: 'Invalid issue id' });
-
-    const existing = await db.get('SELECT * FROM issues WHERE id = ?', [issueId]);
+    const issueId = req.params.id;
+    const existing = await Issue.findById(issueId);
     if (!existing) return res.status(404).json({ error: 'Issue not found' });
 
     if (req.user.role !== 'admin' && existing.user_id !== req.user.id) {
       return res.status(403).json({ error: 'Access denied. You can only delete your own reports.' });
     }
 
-    await db.exec('BEGIN');
-    await db.run('DELETE FROM votes WHERE issue_id = ?', [issueId]);
-    await db.run('DELETE FROM comments WHERE issue_id = ?', [issueId]);
-    await db.run('DELETE FROM notificationPreferences WHERE issue_id = ?', [issueId]);
-    await db.run('DELETE FROM verifications WHERE issue_id = ?', [issueId]);
-    await db.run('DELETE FROM issues WHERE id = ?', [issueId]);
-    await db.exec('COMMIT');
+    await Vote.deleteMany({ issue_id: issueId });
+    await Comment.deleteMany({ issue_id: issueId });
+    await NotificationPreference.deleteMany({ issue_id: issueId });
+    await Verification.deleteMany({ issue_id: issueId });
+    await Issue.findByIdAndDelete(issueId);
 
     io.emit('issueDeleted', { id: issueId });
     res.json({ success: true, message: 'Issue deleted' });
   } catch (err) {
-    try { await db.exec('ROLLBACK'); } catch (e) { /* ignore */ }
     res.status(500).json({ error: err.message });
   }
 });
 
 app.put('/api/issues/:id/status', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const issueId = parseInt(req.params.id);
+    const issueId = req.params.id;
     const { status, remarks, department, priority, resolution_media_url } = req.body;
 
-    const issue = await db.get('SELECT * FROM issues WHERE id = ?', [issueId]);
+    const issue = await Issue.findById(issueId);
     if (!issue) return res.status(404).json({ error: 'Issue not found' });
 
     const oldStatus = issue.status;
-
-    let query = 'UPDATE issues SET updated_at = CURRENT_TIMESTAMP';
-    let params = [];
 
     if (status) {
       const validStatuses = ['Pending', 'In Progress', 'Resolved'];
       if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
-      query += ', status = ?';
-      params.push(status);
-
+      issue.status = status;
       if (status === 'Resolved' && oldStatus !== 'Resolved') {
-        query += `, resolved_at = CURRENT_TIMESTAMP`;
-        // Award 50 bonus points to the reporter
-        await db.run('UPDATE users SET points = points + 50 WHERE id = ?', [issue.user_id]);
-
-        // Check for badge upgrade for the reporter
-        const uPoints = await db.get('SELECT points FROM users WHERE id = ?', [issue.user_id]);
-        let rBadge = "Citizen";
-        if (uPoints.points > 500) rBadge = "Civic Legend";
-        else if (uPoints.points > 200) rBadge = "City Guardian";
-        else if (uPoints.points > 50) rBadge = "Top Citizen";
-        await db.run('UPDATE users SET badge = ? WHERE id = ?', [rBadge, issue.user_id]);
+        issue.resolved_at = new Date();
+        // Award 50 bonus points
+        const user = await User.findOneAndUpdate({ id: issue.user_id }, { $inc: { points: 50 } }, { new: true });
+        if (user) {
+          let rBadge = "Citizen";
+          if (user.points > 500) rBadge = "Civic Legend";
+          else if (user.points > 200) rBadge = "City Guardian";
+          else if (user.points > 50) rBadge = "Top Citizen";
+          await User.findOneAndUpdate({ id: issue.user_id }, { badge: rBadge });
+        }
       } else if (status !== 'Resolved') {
-        query += `, resolved_at = NULL`;
+        issue.resolved_at = null;
       }
     }
 
-    if (remarks !== undefined) { query += ', admin_remarks = ?'; params.push(remarks); }
-    if (department !== undefined) { query += ', department = ?'; params.push(department); }
-    if (priority !== undefined) { query += ', priority = ?'; params.push(priority); }
-    if (resolution_media_url !== undefined) { query += ', resolution_media_url = ?'; params.push(resolution_media_url); }
+    if (remarks !== undefined) issue.admin_remarks = remarks;
+    if (department !== undefined) issue.department = department;
+    if (priority !== undefined) issue.priority = priority;
+    if (resolution_media_url !== undefined) issue.resolution_media_url = resolution_media_url;
 
-    query += ' WHERE id = ?';
-    params.push(issueId);
+    issue.updated_at = new Date();
+    await issue.save();
 
-    await db.run(query, params);
-
-    // Trigger Notifications on Status Update
+    // Notifications
     if (status && status !== oldStatus) {
-      const pref = await db.get('SELECT * FROM notificationPreferences WHERE issue_id = ?', [issueId]);
+      const pref = await NotificationPreference.findOne({ issue_id: issueId });
       if (pref) {
         const isResolved = status.toLowerCase() === 'resolved';
-        const eventPhrase = isResolved ? 'has been RESOLVED' : `status is now ${status}`;
-        let msg = `CivicConnect Update: Complaint ${issue.complaint_id} ${eventPhrase}.`;
-        if (remarks) msg += ` Remarks: ${remarks}`;
-
+        const msg = `CivicConnect Update: Complaint ${issue.complaint_id} ${isResolved ? 'has been RESOLVED' : `status is now ${status}`}. ${remarks || ''}`;
         if (pref.phone) sendSmsNotification(pref.phone, msg);
-        if (pref.push_enabled) sendPushNotification(pref.user_id, "Status Updated", msg);
+        sendPushNotification(issue.user_id, "Status Updated", msg);
       }
-      // Send notification with rich data
-      const reporter = await db.get('SELECT name, email FROM users WHERE id = ?', [issue.user_id]);
+      
+      const reporter = await User.findOne({ id: issue.user_id });
       if (reporter && reporter.email) {
-        const reportDate = new Date(issue.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-        const resolvedDate = status === 'Resolved' ? new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
-
-        sendStatusUpdateEmail(reporter.email, issue.complaint_id, issue.title, status || issue.status, remarks || issue.admin_remarks, reporter.name, reportDate, resolvedDate);
+        sendStatusUpdateEmail(reporter.email, issue.complaint_id, issue.title, status, remarks, reporter.name, issue.created_at, issue.resolved_at);
       }
     }
 
-    res.json({ success: true, message: 'Status updated and notifications sent successfully' });
+    const leanIssue = issue.toObject();
+    leanIssue.id = leanIssue._id.toString();
+    io.emit('issueUpdated', leanIssue);
 
-    // Emit real-time update
-    const updatedIssue = await db.get('SELECT * FROM issues WHERE id = ?', [issueId]);
-    io.emit('issueUpdated', updatedIssue);
+    res.json({ success: true, message: 'Status updated' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1282,38 +1099,35 @@ app.put('/api/issues/:id/status', authenticateToken, requireAdmin, async (req, r
 // --- DEPARTMENT PERFORMANCE & PREDICTIONS ---
 app.get('/api/admin/department-performance', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const resolvedIssues = await db.all('SELECT category, created_at, resolved_at FROM issues WHERE status = "Resolved"');
-    const allIssues = await db.all('SELECT category, status, deadline_at FROM issues');
-
+    const filter = {};
+    if (req.user.email !== 'gov@city.org' && req.user.department) {
+      filter.city = req.user.department;
+    }
+    const allIssues = await Issue.find(filter).lean();
     const performance = {};
 
     allIssues.forEach(issue => {
-      if (!performance[issue.category]) performance[issue.category] = { resolved: 0, total: 0, avgSpeed: 0, totalSpeedMs: 0, delayed: 0 };
-      performance[issue.category].total++;
-      if (issue.status === 'Resolved') performance[issue.category].resolved++;
-
-      const isPastDeadline = issue.status !== 'Resolved' && new Date(issue.deadline_at) < new Date();
-      if (isPastDeadline) performance[issue.category].delayed++;
-    });
-
-    resolvedIssues.forEach(issue => {
-      const speed = new Date(issue.resolved_at) - new Date(issue.created_at);
-      performance[issue.category].totalSpeedMs += speed;
-    });
-
-    Object.keys(performance).forEach(cat => {
-      if (performance[cat].resolved > 0) {
-        performance[cat].avgSpeedHrs = (performance[cat].totalSpeedMs / performance[cat].resolved / (1000 * 60 * 60)).toFixed(1);
-      } else {
-        performance[cat].avgSpeedHrs = 'N/A';
+      const cat = issue.category || 'Unassigned';
+      if (!performance[cat]) performance[cat] = { resolved: 0, total: 0, totalSpeedMs: 0, delayed: 0 };
+      performance[cat].total++;
+      if (issue.status === 'Resolved') {
+        performance[cat].resolved++;
+        if (issue.resolved_at) {
+          performance[cat].totalSpeedMs += (new Date(issue.resolved_at) - new Date(issue.created_at));
+        }
       }
-      // Score = (% Resolved * 0.7) + (% On Time * 0.3)
-      const resolutionRate = (performance[cat].resolved / performance[cat].total) || 0;
-      const onTimeRate = (1 - (performance[cat].delayed / performance[cat].total)) || 1;
-      performance[cat].score = Math.round((resolutionRate * 70) + (onTimeRate * 30));
+      if (issue.status !== 'Resolved' && issue.deadline_at && new Date(issue.deadline_at) < new Date()) {
+        performance[cat].delayed++;
+      }
     });
 
-    const ranking = Object.entries(performance).map(([key, val]) => ({ department: key, ...val })).sort((a, b) => b.score - a.score);
+    const ranking = Object.entries(performance).map(([cat, val]) => {
+      const avgSpeedHrs = val.resolved > 0 ? (val.totalSpeedMs / val.resolved / (1000 * 60 * 60)).toFixed(1) : 'N/A';
+      const resolutionRate = (val.resolved / val.total) || 0;
+      const onTimeRate = (1 - (val.delayed / val.total)) || 1;
+      const score = Math.round((resolutionRate * 70) + (onTimeRate * 30));
+      return { department: cat, ...val, avgSpeedHrs, score };
+    }).sort((a, b) => b.score - a.score);
 
     res.json({ ranking });
   } catch (err) {
@@ -1323,80 +1137,47 @@ app.get('/api/admin/department-performance', authenticateToken, requireAdmin, as
 
 app.get('/api/admin/issue-predictions', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const history = await db.all('SELECT category, city, created_at, lat, lng FROM issues');
-    
-    if (history.length === 0) {
-      return res.json({ predictions: [] });
+    const filter = {};
+    if (req.user.email !== 'gov@city.org' && req.user.department) {
+      filter.city = req.user.department;
     }
+    const history = await Issue.find(filter).select('city category lat lng').lean();
+    if (history.length < 1) return res.json({ predictions: [] });
 
-    // 1. Calculate Category Frequency
-    const catFreq = {};
-    history.forEach(h => {
-      catFreq[h.category] = (catFreq[h.category] || 0) + 1;
-    });
-
-    // 2. Aggregate by City & Category
     const cityCatPatterns = {};
+    const catFreq = {};
+
     history.forEach(h => {
       if (!h.city) return;
+      catFreq[h.category] = (catFreq[h.category] || 0) + 1;
       const key = `${h.city}_${h.category}`;
       if (!cityCatPatterns[key]) {
-        cityCatPatterns[key] = { 
-          count: 0, 
-          city: h.city, 
-          category: h.category,
-          avgLat: 0,
-          avgLng: 0
-        };
+        cityCatPatterns[key] = { count: 0, city: h.city, category: h.category, avgLat: 0, avgLng: 0 };
       }
       cityCatPatterns[key].count++;
       cityCatPatterns[key].avgLat += h.lat;
       cityCatPatterns[key].avgLng += h.lng;
     });
 
-    const results = Object.values(cityCatPatterns).map(p => {
+    const predictions = Object.values(cityCatPatterns).map(p => {
       const avgLat = (p.avgLat / p.count).toFixed(2);
       const avgLng = (p.avgLng / p.count).toFixed(2);
       const totalInCat = catFreq[p.category];
       const intensity = Math.min(Math.round((p.count / totalInCat) * 100), 100);
-      
       let likelihood = intensity > 70 ? 'CRITICAL' : intensity > 40 ? 'High' : 'Moderate';
-      let note = "";
       
-      if (p.category === 'pothole') note = `Seasonal road erosion pattern detected in ${p.city}. Proactive inspection recommended for GRID ${avgLat},${avgLng}.`;
-      else if (p.category === 'garbage') note = `Accumulation spike in ${p.city} indicates secondary collection failure risk.`;
-      else if (p.category === 'water') note = `Pressure drop chain reported. Potential main pipeline compromise in ${p.city}.`;
-      else note = `Unusual volume of ${p.category} reports in ${p.city}. Monitoring cluster active.`;
-
       return {
         category: p.category.toUpperCase(),
         likelihood,
         intensity: `${intensity}%`,
-        note,
+        note: `Pattern detected in ${p.city}. Proactive monitor active at ${avgLat}, ${avgLng}.`,
         grid: `${avgLat}, ${avgLng}`,
         dow: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
         count: p.count
       };
-    });
-
-    // Sort by intensity and return top 5
-    const predictions = results
-      .sort((a, b) => parseInt(b.intensity) - parseInt(a.intensity))
-      .slice(0, 5);
+    }).sort((a, b) => parseInt(b.intensity) - parseInt(a.intensity)).slice(0, 5);
 
     res.json({ predictions });
-  } catch (err) {
-    console.error("Prediction Engine Error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/leaderboard', async (req, res) => {
-  try {
-    const topUsers = await db.all(
-      'SELECT name, points FROM users WHERE role = "user" ORDER BY points DESC LIMIT 10'
-    );
-    res.json({ leaderboard: topUsers });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1415,7 +1196,7 @@ app.post('/api/chat', (req, res) => {
   } else if (msg.includes('pothole') || msg.includes('road')) {
     response = "Potholes and road damage should be reported under the 'Roads & Transport' category. Please attach a photo so our team can assess the depth and urgency.";
   } else if (msg.includes('points') || msg.includes('score') || msg.includes('rank')) {
-    response = "You earn 10 points for every report you file, and a 50-point bonus when your report is resolved! Check the 'Leaderboard' to see top civic contributors.";
+    response = "You earn 20 points for every report you file, 5-10 for verifications, and a 50-point bonus when your report is resolved! Check the 'Leaderboard' to see top contributors.";
   } else if (msg.includes('emergency')) {
     response = "If an issue poses an immediate danger, use the 'Emergency Reporting' toggle in the report form. This flags it natively in our system with highest priority.";
   } else if (msg.includes('admin') || msg.includes('official')) {
@@ -1427,83 +1208,55 @@ app.post('/api/chat', (req, res) => {
 
 app.post('/api/issues/:id/verify', authenticateToken, async (req, res) => {
   const { id } = req.params;
-  const { type } = req.body; // 'exists', 'resolved', or 'not_resolved'
+  const { type } = req.body;
 
   try {
-    const issue = await db.get('SELECT * FROM issues WHERE id = ?', [id]);
+    const issue = await Issue.findById(id);
     if (!issue) return res.status(404).json({ error: 'Issue not found' });
 
     if (issue.user_id === req.user.id) {
       return res.status(400).json({ error: "You cannot verify your own report." });
     }
 
-    // Check if already verified by this user
-    const existing = await db.get('SELECT * FROM verifications WHERE issue_id = ? AND user_id = ?', [id, req.user.id]);
-    if (existing) {
-      return res.status(400).json({ error: "You have already verified this issue." });
-    }
+    const existing = await Verification.findOne({ issue_id: id, user_id: req.user.id });
+    if (existing) return res.status(400).json({ error: "You have already verified this issue." });
 
-    await db.run(
-      'INSERT INTO verifications (issue_id, user_id, type) VALUES (?, ?, ?)',
-      [id, req.user.id, type]
-    );
+    const verification = new Verification({ issue_id: id, user_id: req.user.id, type });
+    await verification.save();
 
     let pointsAwarded = type === 'exists' ? 5 : type === 'resolved' ? 10 : 0;
-    let message = 'Verification successful!';
-
+    
     if (type === 'not_resolved' && issue.status === 'Resolved') {
-      // Re-open the issue
-      const reopenRemark = '[RE-OPENED]: Citizen verification failed — Issue still exists as per community report. (Official resolution disputed)';
-      await db.run(
-        'UPDATE issues SET status = ?, admin_remarks = ? WHERE id = ?',
-        ['Pending', reopenRemark, id]
-      );
-      message = 'Issue re-opened due to verification failure!';
-      // No points for re-opening
-      pointsAwarded = 0;
-
-      // Emit real-time update
-      const updatedIssue = await db.get('SELECT * FROM issues WHERE id = ?', [id]);
-      io.emit('issueUpdated', updatedIssue);
-    } else if (type === 'resolved' && issue.admin_remarks && issue.admin_remarks.includes('[RE-OPENED]')) {
-      // Remove the re-open remark when verified as resolved
-      await db.run(
-        'UPDATE issues SET admin_remarks = NULL WHERE id = ?',
-        [id]
-      );
-
-      // Emit real-time update
-      const updatedIssue = await db.get('SELECT * FROM issues WHERE id = ?', [id]);
-      io.emit('issueUpdated', updatedIssue);
+      issue.status = 'Pending';
+      issue.admin_remarks = '[RE-OPENED]: Citizen verification failed.';
+      await issue.save();
+      const leanIssue = issue.toObject();
+      leanIssue.id = leanIssue._id;
+      io.emit('issueUpdated', leanIssue);
     }
 
     if (pointsAwarded > 0) {
-      await db.run('UPDATE users SET points = points + ? WHERE id = ?', [pointsAwarded, req.user.id]);
-
-      // Refresh user for badge calculation
-      const user = await db.get('SELECT points FROM users WHERE id = ?', [req.user.id]);
+      const user = await User.findOneAndUpdate({ id: req.user.id }, { $inc: { points: pointsAwarded } }, { new: true });
       let newBadge = "Citizen";
       if (user.points > 500) newBadge = "Civic Legend";
       else if (user.points > 200) newBadge = "City Guardian";
       else if (user.points > 50) newBadge = "Top Citizen";
-
-      await db.run('UPDATE users SET badge = ? WHERE id = ?', [newBadge, req.user.id]);
+      await User.findOneAndUpdate({ id: req.user.id }, { badge: newBadge });
     }
 
-    res.json({ message, points: pointsAwarded });
+    res.json({ message: 'Verified!', points: pointsAwarded });
   } catch (err) {
-    if (err.message.includes('UNIQUE')) {
-      return res.status(400).json({ error: "Already verified." });
-    }
     res.status(500).json({ error: err.message });
   }
 });
 
 app.get('/api/leaderboard', async (req, res) => {
   try {
-    const leaderboard = await db.all(
-      'SELECT name, points, badge FROM users WHERE role = "user" AND email != "gov@city.org" ORDER BY points DESC LIMIT 10'
-    );
+    const leaderboard = await User.find({ role: 'user', email: { $ne: 'gov@city.org' } })
+      .sort({ points: -1 })
+      .limit(10)
+      .select('name points badge')
+      .lean();
     res.json({ leaderboard });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1512,11 +1265,11 @@ app.get('/api/leaderboard', async (req, res) => {
 
 app.get('/api/user/profile', authenticateToken, async (req, res) => {
   try {
-    const user = await db.get('SELECT id, name, email, phone, role, points, badge FROM users WHERE id = ?', [req.user.id]);
-    const reportCount = await db.get('SELECT COUNT(*) as c FROM issues WHERE user_id = ?', [req.user.id]);
-    const resolvedCount = await db.get('SELECT COUNT(*) as c FROM issues WHERE user_id = ? AND status = "Resolved"', [req.user.id]);
+    const user = await User.findOne({ id: req.user.id }).select('id name email phone role points badge').lean();
+    const total = await Issue.countDocuments({ user_id: req.user.id });
+    const resolved = await Issue.countDocuments({ user_id: req.user.id, status: 'Resolved' });
 
-    res.json({ user, stats: { total: reportCount.c, resolved: resolvedCount.c } });
+    res.json({ user, stats: { total, resolved } });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1524,13 +1277,12 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
 
 app.get('/api/smart-suggestions', async (req, res) => {
   try {
-    const { lat, lng, radius = 1 } = req.query; // radius in km
+    const { lat, lng, radius = 1 } = req.query;
     if (!lat || !lng) return res.status(400).json({ error: 'lat and lng required' });
 
-    // Get issues within radius
-    const issues = await db.all('SELECT category, lat, lng FROM issues');
+    const issues = await Issue.find({}).select('category lat lng').lean();
     const nearbyIssues = issues.filter(issue => {
-      const distance = Math.sqrt((issue.lat - lat) ** 2 + (issue.lng - lng) ** 2) * 111; // approx km
+      const distance = Math.sqrt((issue.lat - lat) ** 2 + (issue.lng - lng) ** 2) * 111;
       return distance <= radius;
     });
 
@@ -1544,9 +1296,7 @@ app.get('/api/smart-suggestions', async (req, res) => {
     if (categoryCount.pothole > 2) suggestions.push("Road repairs needed in this area");
     if (categoryCount.streetlight > 1) suggestions.push("Streetlight maintenance required");
     if (categoryCount.water > 1) suggestions.push("Water pipeline inspection needed");
-    if (categoryCount.flood > 0) suggestions.push("Flood prevention measures recommended");
-    if (categoryCount.fire > 0) suggestions.push("Fire safety equipment check needed");
-
+    
     res.json({ suggestions, nearbyIssueCount: nearbyIssues.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1555,32 +1305,81 @@ app.get('/api/smart-suggestions', async (req, res) => {
 
 app.get('/api/city-ranking', async (req, res) => {
   try {
-    // For simplicity, calculate overall metrics (assuming single city)
-    // Cleanliness: % of garbage issues resolved
-    const garbageIssues = await db.all('SELECT status FROM issues WHERE category = "garbage"');
+    const garbageIssues = await Issue.find({ category: 'garbage' }).select('status').lean();
     const totalGarbage = garbageIssues.length;
     const resolvedGarbage = garbageIssues.filter(i => i.status === 'Resolved').length;
     const cleanlinessScore = totalGarbage > 0 ? (resolvedGarbage / totalGarbage) * 100 : 100;
 
-    // Response time: Average time to resolve issues
-    const resolvedIssues = await db.all('SELECT created_at, resolved_at FROM issues WHERE status = "Resolved" AND resolved_at IS NOT NULL');
+    const resolvedIssues = await Issue.find({ status: 'Resolved' }).select('created_at resolved_at').lean();
     let totalResponseTime = 0;
     resolvedIssues.forEach(issue => {
-      const created = new Date(issue.created_at);
-      const resolved = new Date(issue.resolved_at);
-      totalResponseTime += (resolved - created) / (1000 * 60 * 60); // hours
+      if (issue.resolved_at) totalResponseTime += (new Date(issue.resolved_at) - new Date(issue.created_at)) / (1000 * 60 * 60);
     });
     const avgResponseTime = resolvedIssues.length > 0 ? totalResponseTime / resolvedIssues.length : 0;
-
-    // Overall score (higher is better)
     const overallScore = (cleanlinessScore * 0.6) + ((24 - Math.min(avgResponseTime, 24)) / 24 * 100 * 0.4);
 
     res.json({
       cleanliness: Math.round(cleanlinessScore),
       avgResponseTimeHours: Math.round(avgResponseTime * 10) / 10,
       overallScore: Math.round(overallScore),
-      rank: 1 // Single city for now
+      rank: 1
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- ADMIN USER MANAGEMENT ---
+app.get('/api/admin/users', authenticateToken, requireMasterAdmin, async (req, res) => {
+  try {
+    const filter = { role: 'admin' };
+    if (req.user.email !== 'gov@city.org' && req.user.department) {
+      filter.department = req.user.department;
+    }
+    const users = await User.find(filter).select('-password').lean();
+    res.json({ users });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/users', authenticateToken, requireMasterAdmin, async (req, res) => {
+  try {
+    const { name, email, password, department, phone } = req.body;
+    if (!name || !email || !password) return res.status(400).json({ error: 'Name, email, and password required' });
+
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(400).json({ error: 'User already exists' });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const userId = generateUserId();
+
+    const newUser = new User({
+      id: userId,
+      name,
+      email,
+      password: hashedPassword,
+      department: department || 'General',
+      phone: phone || '',
+      role: 'admin'
+    });
+    await newUser.save();
+
+    res.status(201).json({ success: true, user: { id: userId, name, email, department: newUser.department } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/admin/users/:id', authenticateToken, requireMasterAdmin, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    if (userId === 'MASTER-ADMIN' || userId === req.user.id) {
+      return res.status(400).json({ error: 'Cannot delete master admin or yourself' });
+    }
+
+    await User.findOneAndDelete({ id: userId });
+    res.json({ success: true, message: 'Admin user removed' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

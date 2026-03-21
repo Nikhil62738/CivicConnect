@@ -272,9 +272,9 @@ const CivicChatbot = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999]">
+    <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-[9999]">
       {open ? (
-        <div className="glass-card w-80 h-[450px] flex flex-col shadow-2xl animate-in slide-in-from-bottom-10 duration-500 overflow-hidden border-indigo-500/30">
+        <div className="glass-card w-[calc(100vw-2rem)] md:w-80 h-[450px] flex flex-col shadow-2xl animate-in slide-in-from-bottom-10 duration-500 overflow-hidden border-indigo-500/30 transition-all">
           <div className="bg-gradient-to-r from-indigo-600 to-primary p-4 flex justify-between items-center shadow-lg">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center animate-pulse">🤖</div>
@@ -762,7 +762,7 @@ export default function App() {
   const fetchGlobalData = async () => {
     if (globalIssues.length === 0) setGlobalLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/issues');
+      const res = await fetch('http://localhost:5000/api/public/issues');
       const data = await res.json();
       const issues = data.issues || [];
       setGlobalIssues(issues);
@@ -1108,23 +1108,27 @@ export default function App() {
     }
   };
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen relative overflow-hidden bg-slate-900 text-slate-100 font-sans">
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/20 blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-secondary/20 blur-[120px] pointer-events-none"></div>
 
       {currentView !== 'admin' ? (
-        <header className="sticky top-0 z-50 backdrop-blur-md bg-slate-900/60 border-b border-slate-700/50">
+        <header className="sticky top-0 z-[60] backdrop-blur-md bg-slate-900/60 border-b border-slate-700/50">
           <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary flex items-center gap-4">
+            <div className="text-xl md:text-2xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary flex items-center gap-2 md:gap-4 transition-all duration-300">
               {t.title}
-              <select value={lang} onChange={(e) => setLang(e.target.value)} className="bg-slate-800 text-xs text-white border border-slate-600 rounded px-2 py-1 outline-none font-sans font-bold">
+              <select value={lang} onChange={(e) => setLang(e.target.value)} className="bg-slate-800 text-[10px] md:text-xs text-white border border-slate-600 rounded px-1.5 md:px-2 py-0.5 md:py-1 outline-none font-sans font-bold cursor-pointer hover:border-primary/50 transition-colors">
                 <option value="en">English</option>
                 <option value="hi">हिंदी</option>
                 <option value="mr">मराठी</option>
               </select>
             </div>
-            <nav className="flex gap-6 text-sm font-medium items-center">
+            
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex gap-6 text-sm font-medium items-center">
               {offlineQueue.length > 0 && (
                 <div className="text-[10px] uppercase font-bold bg-amber-500/20 text-amber-500 px-3 py-1.5 rounded-full border border-amber-500/30 flex items-center gap-2 animate-pulse cursor-default">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
@@ -1133,67 +1137,99 @@ export default function App() {
               )}
               {user ? (
                 <>
-                  <button
-                    onClick={() => setCurrentView('report')}
-                    className={`${currentView === 'report' ? 'text-primary' : 'text-slate-400'} hover:text-slate-200 transition-colors mr-2`}
-                  >
+                  <button onClick={() => setCurrentView('report')} className={`${currentView === 'report' ? 'text-primary bg-primary/5 px-2 py-1 rounded-md' : 'text-slate-400'} hover:text-slate-200 transition-all duration-200 mr-2 flex items-center gap-1`}>
                     📡 {t.reportIssue}
                   </button>
-                  <button
-                    onClick={() => setCurrentView('track')}
-                    className={`${currentView === 'track' ? 'text-primary font-black scale-105' : 'text-slate-400'} hover:text-slate-200 transition-all text-xs tracking-widest uppercase mr-4`}
-                  >
-                    📡 {t.trackIssues}
+                  <button onClick={() => setCurrentView('track')} className={`${currentView === 'track' ? 'text-primary bg-primary/5 px-2 py-1 rounded-md' : 'text-slate-400'} hover:text-slate-200 transition-all duration-200 mr-2 flex items-center gap-1`}>
+                    🛡️ {t.trackIssues}
                   </button>
-                  <button
-                    onClick={() => setCurrentView('history')}
-                    className={`${currentView === 'history' ? 'text-primary' : 'text-slate-400'} hover:text-slate-200 transition-colors mr-2`}
-                  >
+                  <button onClick={() => setCurrentView('history')} className={`${currentView === 'history' ? 'text-primary bg-primary/5 px-2 py-1 rounded-md' : 'text-slate-400'} hover:text-slate-200 transition-all duration-200 mr-2 flex items-center gap-1`}>
                     📚 {t.myHistory}
                   </button>
                   {user.role === 'admin' && (
-                    <button
-                      onClick={() => setCurrentView('admin')}
-                      className={`${currentView === 'admin' ? 'text-amber-500 font-extrabold shadow-sm' : 'text-slate-500'} hover:text-amber-400 transition-all text-[10px] tracking-[0.2em] uppercase border border-slate-800 px-3 py-1 rounded-md ml-2 hover:border-amber-500/30`}
-                    >
-                      🔐 Admin Portal
+                    <button onClick={() => setCurrentView('admin')} className="text-amber-500 font-extrabold shadow-sm hover:text-amber-400 transition-all text-[10px] tracking-[0.2em] uppercase border border-slate-800 px-3 py-1 rounded-md ml-2 hover:border-amber-500/30">
+                      🔐 Admin Panel
                     </button>
                   )}
                   <NotificationBell complaintId={lastComplaintId} />
                   <div className="flex items-center gap-3 ml-4 pl-4 border-l border-slate-700">
-                    <button
-                      onClick={() => setShowProfileModal(true)}
-                      className="text-slate-300 hover:text-primary transition-colors text-sm font-medium cursor-pointer"
-                    >
-                      {t.welcome}, {user.name}
+                    <button onClick={() => setShowProfileModal(true)} className="text-slate-300 hover:text-primary transition-colors text-sm font-medium cursor-pointer">
+                      {t.welcome}, {user.name.split(' ')[0]}
                     </button>
-                    <button
-                      onClick={handleLogout}
-                      className="text-slate-400 hover:text-slate-200 transition-colors text-sm"
-                    >
+                    <button onClick={handleLogout} className="text-slate-400 hover:text-slate-200 transition-colors text-sm font-bold bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700/50 hover:bg-slate-800 active:scale-95 transition-all">
                       {t.logout}
                     </button>
                   </div>
                 </>
               ) : (
                 <>
-                  <button
-                    onClick={() => setCurrentView('login')}
-                    className={`${currentView === 'login' ? 'text-primary' : 'text-slate-400'} hover:text-slate-200 transition-colors`}
-                  >
+                  <button onClick={() => setCurrentView('login')} className={`${currentView === 'login' ? 'text-primary bg-primary/5 px-4 py-2 rounded-lg' : 'text-slate-400'} hover:text-slate-200 transition-all font-bold tracking-widest uppercase text-xs`}>
                     {t.login}
                   </button>
-                  <button
-                    onClick={() => setCurrentView('register')}
-                    className={`${currentView === 'register' ? 'text-primary' : 'text-slate-400'} hover:text-slate-200 transition-colors`}
-                  >
+                  <button onClick={() => setCurrentView('register')} className="bg-primary text-white font-black px-6 py-2.5 rounded-xl hover:shadow-lg hover:shadow-primary/20 hover:scale-105 active:scale-95 transition-all uppercase tracking-widest text-xs">
                     {t.register}
                   </button>
                 </>
               )}
             </nav>
+
+            {/* Mobile Navigation Toggle */}
+            <div className="flex lg:hidden items-center gap-4">
+              {user && <NotificationBell complaintId={lastComplaintId} />}
+              <button 
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex flex-col items-center justify-center gap-1.5 transition-all active:scale-95"
+              >
+                <div className={`w-5 h-0.5 bg-white rounded-full transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></div>
+                <div className={`w-5 h-0.5 bg-white rounded-full transition-all duration-300 ${mobileMenuOpen ? 'opacity-0' : ''}`}></div>
+                <div className={`w-5 h-0.5 bg-white rounded-full transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}></div>
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Menu Panel */}
+          <div className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out border-b border-slate-700 ${mobileMenuOpen ? 'max-h-[500px] py-6 opacity-100' : 'max-h-0 py-0 opacity-0'}`}>
+            <div className="flex flex-col gap-3 px-6">
+              {user ? (
+                <>
+                  <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 mb-2">
+                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">{t.welcome}</p>
+                    <p className="text-white font-bold">{user.name}</p>
+                    <p className="text-slate-400 text-xs mt-0.5 truncate">{user.email}</p>
+                    <button onClick={() => { setShowProfileModal(true); setMobileMenuOpen(false); }} className="text-primary text-[10px] font-black uppercase tracking-widest mt-3 hover:underline">View Profile</button>
+                  </div>
+                  <button onClick={() => { setCurrentView('report'); setMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full p-4 rounded-2xl text-sm font-bold transition-all ${currentView === 'report' ? 'bg-primary text-white shadow-lg' : 'bg-slate-800 text-slate-300'}`}>
+                    📡 {t.reportIssue}
+                  </button>
+                  <button onClick={() => { setCurrentView('track'); setMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full p-4 rounded-2xl text-sm font-bold transition-all ${currentView === 'track' ? 'bg-primary text-white shadow-lg' : 'bg-slate-800 text-slate-300'}`}>
+                    🛡️ {t.trackIssues}
+                  </button>
+                  <button onClick={() => { setCurrentView('history'); setMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full p-4 rounded-2xl text-sm font-bold transition-all ${currentView === 'history' ? 'bg-primary text-white shadow-lg' : 'bg-slate-800 text-slate-300'}`}>
+                    📚 {t.myHistory}
+                  </button>
+                  {user.role === 'admin' && (
+                    <button onClick={() => { setCurrentView('admin'); setMobileMenuOpen(false); }} className="flex items-center gap-3 w-full p-4 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 text-sm font-black uppercase tracking-widest">
+                      🔐 Admin Panel
+                    </button>
+                  )}
+                  <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="flex items-center gap-3 w-full p-4 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 text-sm font-black uppercase tracking-widest mt-2">
+                    ➔ {t.logout}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => { setCurrentView('login'); setMobileMenuOpen(false); }} className="w-full p-4 rounded-2xl bg-slate-800 text-white font-bold text-center border border-slate-700">
+                    {t.login}
+                  </button>
+                  <button onClick={() => { setCurrentView('register'); setMobileMenuOpen(false); }} className="w-full p-4 rounded-2xl bg-primary text-white font-black text-center shadow-lg uppercase tracking-widest">
+                    {t.register}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </header>
+
       ) : (
         <header className="sticky top-0 z-50 backdrop-blur-md bg-slate-900/80 border-b border-amber-500/30">
           <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -1225,7 +1261,7 @@ export default function App() {
             <p className="text-slate-400">Loading...</p>
           </div>
         </div>
-      ) : !user && currentView !== 'track' ? (
+      ) : !user ? (
         currentView === 'register' ? (
           <Register onRegister={handleRegister} onSwitchToLogin={() => setCurrentView('login')} />
         ) : (
@@ -1234,31 +1270,31 @@ export default function App() {
       ) : currentView === 'history' ? (
         <UserHistory onActivity={fetchGlobalData} />
       ) : currentView === 'admin' && user?.role === 'admin' ? (
-        <AdminDashboard />
+        <AdminDashboard user={user} />
       ) : currentView === 'track' ? (
         <IssueTracker />
       ) : (
-        <main className="max-w-5xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-12 relative z-10">
-          <div className="lg:col-span-5 flex flex-col justify-center">
-            <h1 className="text-5xl font-extrabold leading-tight mb-6">
+        <main className="max-w-5xl mx-auto px-6 py-6 lg:py-12 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 relative z-10 transition-all">
+          <div className="lg:col-span-5 flex flex-col justify-center animate-in slide-in-from-left duration-700">
+            <h1 className="text-4xl md:text-5xl lg:text-5xl font-extrabold leading-tight mb-4 md:mb-6 text-center lg:text-left transition-all">
               {t.makeCity} <br /><span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">{t.better}</span>
             </h1>
-            <p className="text-lg text-slate-400 mb-8 leading-relaxed">
+            <p className="text-base md:text-lg text-slate-400 mb-6 md:mb-8 leading-relaxed text-center lg:text-left transition-all">
               {t.desc}
             </p>
-            <div className="flex gap-4">
-              <div className="px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700/50 flex flex-col w-1/2 items-center">
-                <span className="text-3xl font-bold text-primary">{counts.fixed > 1000 ? (counts.fixed / 1000).toFixed(1) + 'K+' : counts.fixed}</span>
-                <span className="text-xs text-slate-400 uppercase tracking-widest mt-1">{t.issuesFixed}</span>
+            <div className="flex gap-3 md:gap-4 transition-all">
+              <div className="px-4 py-3 rounded-2xl bg-slate-800/80 border border-slate-700/50 flex flex-col w-1/2 items-center shadow-lg transition-transform hover:scale-[1.02]">
+                <span className="text-2xl md:text-3xl font-bold text-primary">{counts.fixed > 1000 ? (counts.fixed / 1000).toFixed(1) + 'K+' : counts.fixed}</span>
+                <span className="text-[10px] text-slate-400 uppercase tracking-widest mt-1 font-black text-center">{t.issuesFixed}</span>
               </div>
-              <div className="px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700/50 flex flex-col w-1/2 items-center">
-                <span className="text-3xl font-bold text-secondary">{counts.avg}</span>
-                <span className="text-xs text-slate-400 uppercase tracking-widest mt-1">{t.avgResponse}</span>
+              <div className="px-4 py-3 rounded-2xl bg-slate-800/80 border border-slate-700/50 flex flex-col w-1/2 items-center shadow-lg transition-transform hover:scale-[1.02]">
+                <span className="text-2xl md:text-3xl font-bold text-secondary">{counts.avg}</span>
+                <span className="text-[10px] text-slate-400 uppercase tracking-widest mt-1 font-black text-center">{t.avgResponse}</span>
               </div>
             </div>
 
-            {/* Regional Performance Leaderboard */}
-            <div className="mt-12 bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
+            {/* Regional Performance Leaderboard - Responsive Visibility: Show on mobile but more compact */}
+            <div className="mt-8 md:mt-12 bg-slate-900/50 border border-slate-800 rounded-[2rem] p-6 md:p-8 shadow-2xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl -z-10 group-hover:bg-primary/10 transition-colors"></div>
 
               <div className="flex items-center justify-between mb-6">
@@ -1326,13 +1362,15 @@ export default function App() {
             </div>
           </div>
 
-          <div className="lg:col-span-7">
-            <div className="glass-card p-8 shadow-2xl">
-              <h2 className="text-2xl font-bold mb-6 text-white">{t.reportNew}</h2>
+          <div className="lg:col-span-7 animate-in slide-in-from-right duration-700">
+            <div className="glass-card p-6 md:p-8 shadow-2xl border-indigo-500/20">
+              <h2 className="text-xl md:text-2xl font-bold mb-6 text-white flex items-center gap-2">
+                <span className="p-2 bg-primary/10 rounded-lg">📋</span> {t.reportNew}
+              </h2>
 
-              <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
+              <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5" autoComplete="off">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1.5">{t.issueTitle}</label>
+                  <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5">{t.issueTitle}</label>
                   <input
                     type="text"
                     className="input-field"
@@ -1343,9 +1381,9 @@ export default function App() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1.5">Category</label>
+                    <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5">Category</label>
                     <select
                       className="input-field appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1em_1em] bg-[right_1rem_center] bg-no-repeat pr-10"
                       required
@@ -1363,44 +1401,43 @@ export default function App() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1.5 flex justify-between">
+                    <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5 flex justify-between">
                       <span>Upload Media</span>
-                      {aiParsing && <span className="text-xs text-primary animate-pulse flex items-center gap-1"><svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> AI Scanning...</span>}
+                      {aiParsing && <span className="text-[9px] text-primary animate-pulse flex items-center gap-1"><svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> AI Scanning...</span>}
                     </label>
                     <input
                       type="file"
-                      className="input-field py-[6px] file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-white hover:file:bg-indigo-500 cursor-pointer"
+                      className="input-field py-1 md:py-[6px] text-xs file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[10px] file:font-black file:bg-primary file:text-white hover:file:bg-indigo-500 cursor-pointer"
                       accept="image/*,video/*"
                       onChange={handleMediaUpload}
                     />
                     {aiResult && (
-                      <div className="mt-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-2 rounded-lg flex items-start gap-2 animate-in fade-in">
-                        <span className="text-lg">🤖</span>
+                      <div className="mt-2 text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-2 rounded-lg flex items-start gap-2 animate-in slide-in-from-top-1">
+                        <span className="text-base">🤖</span>
                         <div>
                           <div className="font-bold flex items-center gap-2">
-                            AI Detection: {aiResult.label} ({aiResult.confidence}%)
+                            AI: {aiResult.label} ({aiResult.confidence}%)
                             <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter ${aiResult.severity === 'High' ? 'bg-red-500 text-white' : aiResult.severity === 'Low' ? 'bg-blue-500 text-white' : 'bg-amber-500 text-black'}`}>
-                              {aiResult.severity} Severity
+                              {aiResult.severity}
                             </span>
                           </div>
-                          <div className="text-slate-400 mt-0.5">Auto-categorized as: <span className="text-white uppercase tracking-widest">{aiResult.detectedCat}</span></div>
                         </div>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="bg-red-500/5 border border-red-500/20 p-4 rounded-xl flex items-center justify-between group hover:bg-red-500/10 transition-all">
+                <div className="bg-red-500/5 border border-red-500/20 p-3 md:p-4 rounded-xl flex items-center justify-between group hover:bg-red-500/10 transition-all">
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${formData.is_emergency ? 'bg-red-500 text-white animate-pulse shadow-red-500/50 shadow-md' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>
                       🚨
                     </div>
                     <div>
-                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-300">Hazard Level</div>
-                      <div className={`text-xs font-bold transition-colors ${formData.is_emergency ? 'text-red-400' : 'text-slate-500'}`}>Emergency Reporting</div>
+                      <div className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-300">Hazard Level</div>
+                      <div className={`text-[10px] md:text-xs font-bold transition-colors ${formData.is_emergency ? 'text-red-400' : 'text-slate-500'}`}>Emergency Reporting</div>
                     </div>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="relative inline-flex items-center cursor-pointer scale-90 md:scale-100">
                     <input
                       type="checkbox"
                       className="sr-only peer"
@@ -1411,37 +1448,20 @@ export default function App() {
                   </label>
                 </div>
 
-                {smartSuggestions.length > 0 && (
-                  <div className="bg-blue-500/5 border border-blue-500/20 p-4 rounded-xl">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-lg">🧠</span>
-                      <span className="text-sm font-bold text-blue-400">Smart Suggestions</span>
-                    </div>
-                    <ul className="space-y-1">
-                      {smartSuggestions.map((suggestion, idx) => (
-                        <li key={idx} className="text-xs text-slate-300 flex items-center gap-2">
-                          <span className="w-1 h-1 bg-blue-400 rounded-full"></span>
-                          {suggestion}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1.5 flex justify-between items-center">
+                  <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5 flex justify-between items-center">
                     <span>Description</span>
                     <button
                       type="button"
                       onClick={startDescriptionVoice}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isListeningDescription ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'}`}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${isListeningDescription ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'}`}
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
-                      {isListeningDescription ? 'Listening...' : 'Speak Instead'}
+                      {isListeningDescription ? 'Listening...' : 'Speak'}
                     </button>
                   </label>
                   <textarea
-                    className="input-field resize-none h-28"
+                    className="input-field resize-none h-24 md:h-28 text-sm"
                     placeholder="Describe the issue in detail..."
                     required
                     value={formData.description}
@@ -1449,29 +1469,29 @@ export default function App() {
                   ></textarea>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-2 gap-4 md:gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1.5">District</label>
+                    <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5">District</label>
                     <select
-                      className="input-field appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1em_1em] bg-[right_1rem_center] bg-no-repeat pr-10"
+                      className="input-field text-xs md:text-sm appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1em_1em] bg-[right_0.5rem_center] md:bg-[right_1rem_center] bg-no-repeat pr-6 md:pr-10"
                       value={formData.city}
                       onChange={e => setFormData({ ...formData, city: e.target.value, village: '' })}
                     >
-                      <option value="">Select District</option>
+                      <option value="">District</option>
                       {Object.keys(maharashtraDistricts).sort().map(district => (
                         <option key={district} value={district}>{district}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1.5">Taluka</label>
+                    <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5">Taluka</label>
                     <select
-                      className="input-field appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1em_1em] bg-[right_1rem_center] bg-no-repeat pr-10"
+                      className="input-field text-xs md:text-sm appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1em_1em] bg-[right_0.5rem_center] md:bg-[right_1rem_center] bg-no-repeat pr-6 md:pr-10"
                       value={formData.village}
                       onChange={e => setFormData({ ...formData, village: e.target.value })}
                       disabled={!formData.city}
                     >
-                      <option value="">Select Taluka</option>
+                      <option value="">Taluka</option>
                       {formData.city && maharashtraDistricts[formData.city]?.map(taluka => (
                         <option key={taluka} value={taluka}>{taluka}</option>
                       ))}
@@ -1480,13 +1500,13 @@ export default function App() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1.5 flex justify-between items-end">
-                    <span>Location Pinpoint</span>
-                    <span className="text-xs font-normal text-slate-500">
-                      {formData.lat ? `Selected: ${formData.lat.toFixed(4)}, ${formData.lng.toFixed(4)}` : 'Click on map to select'}
+                  <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5 flex justify-between items-end">
+                    <span>Map Pinpoint</span>
+                    <span className="text-[8px] md:text-xs font-black uppercase text-slate-500">
+                      {formData.lat ? `${formData.lat.toFixed(2)}, ${formData.lng.toFixed(2)}` : 'Tap to select'}
                     </span>
                   </label>
-                  <div className={`h-[300px] w-full relative rounded-xl overflow-hidden border-2 transition-colors ${formData.lat ? 'border-primary' : 'border-slate-700'}`}>
+                  <div className={`h-[250px] md:h-[300px] w-full relative rounded-2xl overflow-hidden border-2 transition-all ${formData.lat ? 'border-primary shadow-lg shadow-primary/10' : 'border-slate-700'}`}>
                     <MapContainer
                       center={defaultCenter}
                       zoom={5}
@@ -1494,7 +1514,6 @@ export default function App() {
                       style={{ height: '100%', width: '100%', zIndex: 10 }}
                     >
                       <GpsButton setFormData={setFormData} />
-                      {/* Using Google Maps tile layer as specified in the original admin.html script */}
                       <TileLayer
                         attribution="Map data © Google"
                         url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
@@ -1527,10 +1546,10 @@ export default function App() {
                   </div>
                 )}
 
-                <div className="pt-2 flex justify-end">
+                <div className="pt-2">
                   <button
                     type="submit"
-                    className={`btn w-full md:w-auto min-w-[160px] flex items-center justify-center gap-2 ${isSubmitting || checkingDuplicates ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    className={`btn w-full md:w-auto min-w-[200px] py-4 rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all ${isSubmitting || checkingDuplicates ? 'opacity-70 cursor-not-allowed' : 'bg-primary'}`}
                     disabled={isSubmitting || checkingDuplicates}
                   >
                     {isSubmitting ? (
@@ -1538,7 +1557,7 @@ export default function App() {
                         <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                         {t.submitting}
                       </>
-                    ) : checkingDuplicates ? "Checking Proximity..." : t.submit}
+                    ) : checkingDuplicates ? "Verifying..." : t.submit}
                   </button>
                 </div>
               </form>
@@ -1546,6 +1565,7 @@ export default function App() {
           </div>
         </main>
       )}
+
 
       {showSuccess && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">

@@ -1,11 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from 'react-leaflet';
 import { maharashtraDistricts, districtCoords } from './constants';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
+function DistrictMapFocus({ filterDistrict, isDistrictAdmin }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (isDistrictAdmin && filterDistrict !== 'All' && districtCoords[filterDistrict]) {
+      const [lat, lng] = districtCoords[filterDistrict];
+      map.flyTo([lat, lng], 11, { animate: true, duration: 1.5 });
+    }
+  }, [filterDistrict, isDistrictAdmin, map]);
+  
+  return null;
+}
 
-export default function AdminDashboard() {
+export default function AdminDashboard({ user }) {
   const [issues, setIssues] = useState([]);
   const [isAuthorized, setIsAuthorized] = useState(true);
   const [activeTab, setActiveTab] = useState('overview'); // overview, map, manage
@@ -17,6 +29,9 @@ export default function AdminDashboard() {
   const [filterTime, setFilterTime] = useState('Monthly'); // Today, Weekly, Monthly, All
   const [searchTerm, setSearchTerm] = useState('');
   const [mapView, setMapView] = useState('city'); // issues, city
+
+  const isDistrictAdmin = user?.department && user.email !== 'gov@city.org';
+  const isMasterAdmin = user?.email === 'gov@city.org';
 
   // Maharashtra districts and their talukas
   const maharashtraDistricts = {
@@ -60,7 +75,7 @@ export default function AdminDashboard() {
 
   // Get available options for filters
   const availableDistricts = Object.keys(maharashtraDistricts).sort();
-  const availableTalukas = filterDistrict === 'All'
+  const availableTalukas = filterDistrict === 'All' || isDistrictAdmin
     ? Object.values(maharashtraDistricts).flat().sort()
     : (maharashtraDistricts[filterDistrict] || []).sort();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -70,6 +85,10 @@ export default function AdminDashboard() {
   const [expandedIssue, setExpandedIssue] = useState(null);
   const [editFormData, setEditFormData] = useState({});
   const [saving, setSaving] = useState(false);
+
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [adminForm, setAdminForm] = useState({ name: '', email: '', password: '', department: '' });
+  const [addingAdmin, setAddingAdmin] = useState(false);
 
   const fetchIssues = async () => {
     try {
@@ -104,10 +123,27 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchAdminUsers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/admin/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.users) setAdminUsers(data.users);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
+    if (user?.department && user.email !== 'gov@city.org') {
+      setFilterDistrict(user.department);
+    }
     fetchIssues();
     fetchAnalytics();
-  }, []);
+    fetchAdminUsers();
+  }, [user]);
 
   const handleUpdateIssue = async (id) => {
     setSaving(true);
@@ -141,7 +177,49 @@ export default function AdminDashboard() {
   const handleSync = async () => {
     setIsRefreshing(true);
     await fetchIssues();
+    await fetchAdminUsers();
     setTimeout(() => setIsRefreshing(false), 600);
+  };
+
+  const handleCreateAdmin = async (e) => {
+    e.preventDefault();
+    setAddingAdmin(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(adminForm)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create admin');
+      alert(`Admin account created for ${adminForm.email}`);
+      setAdminForm({ name: '', email: '', password: '', department: '' });
+      await fetchAdminUsers();
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setAddingAdmin(false);
+    }
+  };
+
+  const handleDeleteAdmin = async (id) => {
+    if (!window.confirm('Are you sure you want to remove this admin session?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:5000/api/admin/users/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Deletion failed');
+      await fetchAdminUsers();
+    } catch (e) {
+      alert(e.message);
+    }
   };
 
   // Trend and Filtered Analysis Logic
@@ -165,14 +243,14 @@ export default function AdminDashboard() {
       stats[city][status] = (stats[city][status] || 0) + 1;
       stats[city].total++;
     });
-    return Object.values(stats).sort((a,b) => b.total - a.total).slice(0, 5); // Top 5
+    return Object.values(stats).sort((a, b) => b.total - a.total).slice(0, 5); // Top 5
   }, [filteredByTime]);
 
   const computeImprovement = (city) => {
     // Current period vs Previous period for this city
     const now = new Date();
-    const periodMs = filterTime === 'Today' ? (24*60*60*1000) : (filterTime === 'Weekly' ? 7*24*60*60*1000 : 30*24*60*60*1000);
-    
+    const periodMs = filterTime === 'Today' ? (24 * 60 * 60 * 1000) : (filterTime === 'Weekly' ? 7 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000);
+
     const currIssues = issues.filter(i => {
       const created = new Date(i.created_at);
       return i.city === city && (now - created) <= periodMs;
@@ -183,10 +261,10 @@ export default function AdminDashboard() {
     });
 
     if (prevIssues.length === 0) return 0;
-    
+
     const currRate = currIssues.filter(i => i.status === 'Resolved').length / (currIssues.length || 1);
     const prevRate = prevIssues.filter(i => i.status === 'Resolved').length / (prevIssues.length || 1);
-    
+
     return Math.round((currRate - prevRate) * 100);
   };
 
@@ -196,7 +274,7 @@ export default function AdminDashboard() {
       if (cityIssues.length === 0) return { name, score: 0, solved: 0 };
       const rate = cityIssues.filter(i => i.status === 'Resolved').length / cityIssues.length;
       return { name, score: Math.round(rate * 100), solved: cityIssues.filter(i => i.status === 'Resolved').length };
-    }).sort((a,b) => b.score - a.score || b.solved - a.solved).slice(0, 10);
+    }).sort((a, b) => b.score - a.score || b.solved - a.solved).slice(0, 10);
   }, [issues]);
   const total = issues.length;
   const pending = issues.filter(i => (!i.status || i.status === 'Pending')).length;
@@ -240,156 +318,162 @@ export default function AdminDashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
           <h2 className="text-4xl font-black text-white bg-clip-text text-transparent bg-gradient-to-r from-primary to-emerald-400">Headquarters</h2>
-          <p className="text-slate-400 mt-1 font-medium tracking-wide">City Infrastructure & Complaint Analytics</p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-slate-400 font-medium tracking-wide">City Infrastructure & Complaint Analytics</p>
+            {isDistrictAdmin && <span className="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded border border-primary/30 uppercase font-black tracking-widest animate-pulse">🏛️ District Mode: {user.department}</span>}
+          </div>
         </div>
 
-        <div className="flex bg-slate-800 rounded-lg p-1.5 shadow-xl border border-slate-700/50">
-          <button onClick={() => setActiveTab('overview')} className={`px-5 py-2 rounded-md font-bold text-sm transition-colors ${activeTab === 'overview' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>Overview</button>
-          <button onClick={() => setActiveTab('analytics')} className={`px-5 py-2 rounded-md font-bold text-sm transition-colors ${activeTab === 'analytics' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>🚀 KPI & Predictions</button>
-          <button onClick={() => setActiveTab('map')} className={`px-5 py-2 rounded-md font-bold text-sm transition-colors ${activeTab === 'map' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>Heatmap</button>
-          <button onClick={() => setActiveTab('manage')} className={`px-5 py-2 rounded-md font-bold text-sm transition-colors ${activeTab === 'manage' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>Manage DB</button>
+        <div className="flex bg-slate-800 rounded-lg p-1 shadow-xl border border-slate-700/50 overflow-x-auto no-scrollbar">
+          <div className="flex whitespace-nowrap">
+            <button onClick={() => setActiveTab('overview')} className={`px-4 md:px-5 py-2 rounded-md font-bold text-[11px] md:text-sm transition-colors ${activeTab === 'overview' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>Overview</button>
+            <button onClick={() => setActiveTab('analytics')} className={`px-4 md:px-5 py-2 rounded-md font-bold text-[11px] md:text-sm transition-colors ${activeTab === 'analytics' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>🚀 Analytics</button>
+            <button onClick={() => setActiveTab('map')} className={`px-4 md:px-5 py-2 rounded-md font-bold text-[11px] md:text-sm transition-colors ${activeTab === 'map' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>Heatmap</button>
+            <button onClick={() => setActiveTab('manage')} className={`px-4 md:px-5 py-2 rounded-md font-bold text-[11px] md:text-sm transition-colors ${activeTab === 'manage' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>Manage DB</button>
+            {isMasterAdmin && <button onClick={() => setActiveTab('admins')} className={`px-4 md:px-5 py-2 rounded-md font-bold text-[11px] md:text-sm transition-colors ${activeTab === 'admins' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>👤 District Admins</button>}
+          </div>
         </div>
       </div>
 
       {/* OVERVIEW TAB */}
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 animate-in slide-in-from-bottom-4">
-          
-          <div className="md:col-span-12 flex justify-between items-center mb-2">
-             <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
-                {['Today', 'Weekly', 'Monthly', 'All'].map(t => (
-                  <button key={t} onClick={() => setFilterTime(t)} className={`px-4 py-1 text-[10px] font-black uppercase tracking-wider rounded transition-all ${filterTime === t ? 'bg-primary text-white' : 'text-slate-500 hover:text-slate-300'}`}>{t}</button>
-                ))}
-             </div>
-             <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
-                📅 Analyzing {filterTime} Trends
-             </div>
+
+          <div className="md:col-span-12 flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-4">
+            <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700 w-full sm:w-auto overflow-x-auto no-scrollbar">
+              {['Today', 'Weekly', 'Monthly', 'All'].map(t => (
+                <button key={t} onClick={() => setFilterTime(t)} className={`flex-1 sm:flex-none px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded transition-all whitespace-nowrap ${filterTime === t ? 'bg-primary text-white' : 'text-slate-500 hover:text-slate-300'}`}>{t}</button>
+              ))}
+            </div>
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
+              📅 Analyzing {filterTime} Trends
+            </div>
           </div>
 
           <div className="md:col-span-8 flex flex-col gap-8">
-             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-               <div className="glass-card p-6 border-b-4 border-b-blue-500 relative overflow-hidden">
-                 <div className="absolute -right-4 -bottom-4 opacity-10 text-blue-500"><svg className="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M10 20a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm-5.6-4.29a9.95 9.95 0 0 1 11.2 0 8 8 0 1 0-11.2 0zm6.12-7.64l3.02-3.02 1.41 1.41-3.02 3.02a2 2 0 1 1-1.41-1.41z" /></svg></div>
-                 <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Total Complaints</h3>
-                 <p className="text-5xl font-black text-white">{total}</p>
-               </div>
-               <div className="glass-card p-6 border-b-4 border-b-emerald-500 relative overflow-hidden">
-                 <div className="absolute -right-4 -bottom-4 opacity-10 text-emerald-500"><svg className="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M0 11l2-2 5 5L18 3l2 2L7 18z" /></svg></div>
-                 <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Resolution Rate</h3>
-                 <p className="text-5xl font-black text-emerald-400">{total > 0 ? Math.round((resolved / total) * 100) : 0}%</p>
-               </div>
-               <div className="glass-card p-6 border-b-4 border-b-amber-500 relative overflow-hidden">
-                 <div className="absolute -right-6 -bottom-6 opacity-10 text-amber-500"><svg className="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M10 20a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-1-7.59V4h2v5.59l3.95 3.95-1.41 1.41L9 10.41z" /></svg></div>
-                 <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Avg Res Time</h3>
-                 <p className="text-5xl font-black text-amber-400">{avgResTimeHours}<span className="text-lg font-bold ml-1">hrs</span></p>
-               </div>
-             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="glass-card p-6 border-b-4 border-b-blue-500 relative overflow-hidden">
+                <div className="absolute -right-4 -bottom-4 opacity-10 text-blue-500"><svg className="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M10 20a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm-5.6-4.29a9.95 9.95 0 0 1 11.2 0 8 8 0 1 0-11.2 0zm6.12-7.64l3.02-3.02 1.41 1.41-3.02 3.02a2 2 0 1 1-1.41-1.41z" /></svg></div>
+                <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Total Complaints</h3>
+                <p className="text-5xl font-black text-white">{total}</p>
+              </div>
+              <div className="glass-card p-6 border-b-4 border-b-emerald-500 relative overflow-hidden">
+                <div className="absolute -right-4 -bottom-4 opacity-10 text-emerald-500"><svg className="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M0 11l2-2 5 5L18 3l2 2L7 18z" /></svg></div>
+                <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Resolution Rate</h3>
+                <p className="text-5xl font-black text-emerald-400">{total > 0 ? Math.round((resolved / total) * 100) : 0}%</p>
+              </div>
+              <div className="glass-card p-6 border-b-4 border-b-amber-500 relative overflow-hidden">
+                <div className="absolute -right-6 -bottom-6 opacity-10 text-amber-500"><svg className="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M10 20a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-1-7.59V4h2v5.59l3.95 3.95-1.41 1.41L9 10.41z" /></svg></div>
+                <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Avg Res Time</h3>
+                <p className="text-5xl font-black text-amber-400">{avgResTimeHours}<span className="text-lg font-bold ml-1">hrs</span></p>
+              </div>
+            </div>
 
-             {/* CITY PIPELINE - NEW FEATURE */}
-             <div className="glass-card p-6 border border-slate-700/50 bg-gradient-to-br from-slate-900 to-slate-800/50">
-                <div className="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
-                   <div>
-                      <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">🔄 City Pipeline Flow</h3>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Resource allocation and status tracking per district</p>
-                   </div>
-                   <div className="flex gap-4">
-                      <div className="text-center px-3 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                         <div className="text-[9px] text-emerald-400 font-black uppercase">Done</div>
-                         <div className="text-lg font-black text-white">{resolved}</div>
-                      </div>
-                      <div className="text-center px-3 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                         <div className="text-[9px] text-blue-400 font-black uppercase">Doing</div>
-                         <div className="text-lg font-black text-white">{inProgress}</div>
-                      </div>
-                      <div className="text-center px-3 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20">
-                         <div className="text-[9px] text-amber-400 font-black uppercase">Wait</div>
-                         <div className="text-lg font-black text-white">{pending}</div>
-                      </div>
-                   </div>
+            {/* CITY PIPELINE - NEW FEATURE */}
+            <div className="glass-card p-6 border border-slate-700/50 bg-gradient-to-br from-slate-900 to-slate-800/50">
+              <div className="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">🔄 City Pipeline Flow</h3>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Resource allocation and status tracking per district</p>
                 </div>
-                
-                <div className="grid grid-cols-1 gap-6">
-                   {cityData.map(city => {
-                     const totalCity = city.total;
-                     const rP = (city.Resolved / totalCity) * 100;
-                     const iP = (city['In Progress'] / totalCity) * 100;
-                     const wP = (city.Pending / totalCity) * 100;
-                     
-                     return (
-                       <div key={city.name} className="space-y-2 group hover:bg-slate-800/40 p-2 rounded-xl transition-all cursor-pointer" onClick={() => {setFilterDistrict(city.name); setActiveTab('manage');}}>
-                         <div className="flex justify-between items-center">
-                           <span className="text-xs font-black text-slate-300 uppercase tracking-widest">{city.name}</span>
-                           <span className="font-mono text-[10px] text-primary">{totalCity} Incident(s)</span>
-                         </div>
-                         <div className="h-4 w-full bg-slate-800 rounded-full flex overflow-hidden border border-slate-700/50 shadow-inner">
-                           <div className="bg-emerald-500 transition-all duration-700" style={{ width: `${rP}%` }}></div>
-                           <div className="bg-blue-500 transition-all duration-700 opacity-80" style={{ width: `${iP}%` }}></div>
-                           <div className="bg-amber-500 transition-all duration-700 opacity-60" style={{ width: `${wP}%` }}></div>
-                         </div>
-                         <div className="flex justify-between text-[8px] font-black uppercase text-slate-500 tracking-tighter">
-                            <span>🟢 {Math.round(rP)}% Solved</span>
-                            <span>🔵 {Math.round(iP)}% Processing</span>
-                            <span>🟡 {Math.round(wP)}% Queued</span>
-                         </div>
-                       </div>
-                     );
-                   })}
+                <div className="flex gap-4">
+                  <div className="text-center px-3 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                    <div className="text-[9px] text-emerald-400 font-black uppercase">Done</div>
+                    <div className="text-lg font-black text-white">{resolved}</div>
+                  </div>
+                  <div className="text-center px-3 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                    <div className="text-[9px] text-blue-400 font-black uppercase">Doing</div>
+                    <div className="text-lg font-black text-white">{inProgress}</div>
+                  </div>
+                  <div className="text-center px-3 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                    <div className="text-[9px] text-amber-400 font-black uppercase">Wait</div>
+                    <div className="text-lg font-black text-white">{pending}</div>
+                  </div>
                 </div>
+              </div>
 
-                <div className="mt-8 pt-6 border-t border-slate-800">
-                    <h4 className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">⚠️ Risk Profile Assessment</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                       {Object.entries(issues.reduce((acc, curr) => {
-                          if ((curr.priority === 'High' || curr.is_emergency) && curr.status !== 'Resolved') {
-                             acc[curr.city] = (acc[curr.city] || 0) + 1;
-                          }
-                          return acc;
-                       }, {})).sort((a,b) => b[1] - a[1]).slice(0, 3).map(([city, count]) => (
-                          <div key={city} className="bg-red-500/5 border border-red-500/10 p-3 rounded-lg flex items-center justify-between">
-                             <div>
-                                <div className="text-[11px] font-black text-red-400 uppercase">{city}</div>
-                                <div className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">Critical Backlog</div>
-                             </div>
-                             <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center font-black text-red-500 text-xs shadow-[0_0_15px_rgba(239,68,68,0.2)] animate-pulse">{count}</div>
-                          </div>
-                       ))}
+              <div className="grid grid-cols-1 gap-6">
+                {cityData.map(city => {
+                  const totalCity = city.total;
+                  const rP = (city.Resolved / totalCity) * 100;
+                  const iP = (city['In Progress'] / totalCity) * 100;
+                  const wP = (city.Pending / totalCity) * 100;
+
+                  return (
+                    <div key={city.name} className="space-y-2 group hover:bg-slate-800/40 p-2 rounded-xl transition-all cursor-pointer" onClick={() => { setFilterDistrict(city.name); setActiveTab('manage'); }}>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-black text-slate-300 uppercase tracking-widest">{city.name}</span>
+                        <span className="font-mono text-[10px] text-primary">{totalCity} Incident(s)</span>
+                      </div>
+                      <div className="h-4 w-full bg-slate-800 rounded-full flex overflow-hidden border border-slate-700/50 shadow-inner">
+                        <div className="bg-emerald-500 transition-all duration-700" style={{ width: `${rP}%` }}></div>
+                        <div className="bg-blue-500 transition-all duration-700 opacity-80" style={{ width: `${iP}%` }}></div>
+                        <div className="bg-amber-500 transition-all duration-700 opacity-60" style={{ width: `${wP}%` }}></div>
+                      </div>
+                      <div className="flex justify-between text-[8px] font-black uppercase text-slate-500 tracking-tighter">
+                        <span>🟢 {Math.round(rP)}% Solved</span>
+                        <span>🔵 {Math.round(iP)}% Processing</span>
+                        <span>🟡 {Math.round(wP)}% Queued</span>
+                      </div>
                     </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-slate-800">
+                <h4 className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">⚠️ Risk Profile Assessment</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {Object.entries(issues.reduce((acc, curr) => {
+                    if ((curr.priority === 'High' || curr.is_emergency) && curr.status !== 'Resolved') {
+                      acc[curr.city] = (acc[curr.city] || 0) + 1;
+                    }
+                    return acc;
+                  }, {})).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([city, count]) => (
+                    <div key={city} className="bg-red-500/5 border border-red-500/10 p-3 rounded-lg flex items-center justify-between">
+                      <div>
+                        <div className="text-[11px] font-black text-red-400 uppercase">{city}</div>
+                        <div className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">Critical Backlog</div>
+                      </div>
+                      <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center font-black text-red-500 text-xs shadow-[0_0_15px_rgba(239,68,68,0.2)] animate-pulse">{count}</div>
+                    </div>
+                  ))}
                 </div>
-             </div>
+              </div>
+            </div>
           </div>
 
           <div className="md:col-span-4 flex flex-col gap-8">
-             {/* CITY RANKING & TRENDS */}
-             <div className="glass-card p-6 border border-slate-700/50 flex flex-col h-full rounded-2xl bg-slate-900/40">
-                <div className="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
-                   <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">🏅 City Rankings</h3>
-                </div>
-                <div className="flex-1 space-y-4 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
-                   {cityRanking.map((city, idx) => {
-                      const improvement = computeImprovement(city.name);
-                      return (
-                         <div key={city.name} className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex items-center justify-between group hover:border-primary/50 transition-all cursor-pointer" onClick={() => {setFilterDistrict(city.name); setActiveTab('manage'); }}>
-                            <div className="flex items-center gap-3">
-                               <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${idx === 0 ? 'bg-amber-500 text-black' : (idx === 1 ? 'bg-slate-300 text-black' : (idx === 2 ? 'bg-orange-800 text-white' : 'bg-slate-800 text-slate-500'))}`}>{idx+1}</span>
-                               <div>
-                                  <div className="text-[11px] font-black text-white uppercase tracking-widest">{city.name}</div>
-                                  <div className="text-[9px] text-slate-500 font-bold uppercase">{city.solved} Resolved</div>
-                               </div>
-                            </div>
-                            <div className="text-right">
-                               <div className="text-sm font-black text-primary">{city.score}% Score</div>
-                               {improvement !== 0 && (
-                                  <div className={`text-[9px] font-black uppercase flex items-center gap-1 justify-end mt-1 ${improvement > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                     {improvement > 0 ? '↗' : '↘'} {Math.abs(improvement)}% {filterTime} Trend
-                                  </div>
-                                )}
-                            </div>
-                         </div>
-                      );
-                   })}
-                   {cityRanking.length === 0 && <p className="text-slate-600 text-xs italic text-center py-20 uppercase font-black tracking-widest opacity-50">Synchronizing Regional Datasets...</p>}
-                </div>
-             </div>
+            {/* CITY RANKING & TRENDS */}
+            <div className="glass-card p-6 border border-slate-700/50 flex flex-col h-full rounded-2xl bg-slate-900/40">
+              <div className="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
+                <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">🏅 City Rankings</h3>
+              </div>
+              <div className="flex-1 space-y-4 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
+                {cityRanking.map((city, idx) => {
+                  const improvement = computeImprovement(city.name);
+                  return (
+                    <div key={city.name} className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex items-center justify-between group hover:border-primary/50 transition-all cursor-pointer" onClick={() => { setFilterDistrict(city.name); setActiveTab('manage'); }}>
+                      <div className="flex items-center gap-3">
+                        <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${idx === 0 ? 'bg-amber-500 text-black' : (idx === 1 ? 'bg-slate-300 text-black' : (idx === 2 ? 'bg-orange-800 text-white' : 'bg-slate-800 text-slate-500'))}`}>{idx + 1}</span>
+                        <div>
+                          <div className="text-[11px] font-black text-white uppercase tracking-widest">{city.name}</div>
+                          <div className="text-[9px] text-slate-500 font-bold uppercase">{city.solved} Resolved</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-black text-primary">{city.score}% Score</div>
+                        {improvement !== 0 && (
+                          <div className={`text-[9px] font-black uppercase flex items-center gap-1 justify-end mt-1 ${improvement > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {improvement > 0 ? '↗' : '↘'} {Math.abs(improvement)}% {filterTime} Trend
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                {cityRanking.length === 0 && <p className="text-slate-600 text-xs italic text-center py-20 uppercase font-black tracking-widest opacity-50">Synchronizing Regional Datasets...</p>}
+              </div>
+            </div>
           </div>
 
         </div>
@@ -479,17 +563,18 @@ export default function AdminDashboard() {
               </div>
             )}
             <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700 pointer-events-auto">
-               <button onClick={() => setMapView('issues')} className={`flex-1 px-4 py-1 text-[9px] font-black uppercase tracking-wider rounded transition-all ${mapView === 'issues' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>📍 Pins</button>
-               <button onClick={() => setMapView('city')} className={`flex-1 px-4 py-1 text-[9px] font-black uppercase tracking-wider rounded transition-all ${mapView === 'city' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>🏢 Cities</button>
+              <button onClick={() => setMapView('issues')} className={`flex-1 px-4 py-1 text-[9px] font-black uppercase tracking-wider rounded transition-all ${mapView === 'issues' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>📍 Pins</button>
+              <button onClick={() => setMapView('city')} className={`flex-1 px-4 py-1 text-[9px] font-black uppercase tracking-wider rounded transition-all ${mapView === 'city' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>🏢 Cities</button>
             </div>
           </div>
 
           <MapContainer center={[20.5937, 78.9629]} zoom={5} style={{ height: '100%', width: '100%', background: '#0f172a' }}>
+            <DistrictMapFocus filterDistrict={filterDistrict} isDistrictAdmin={isDistrictAdmin} />
             <TileLayer
               attribution="&copy; Google Maps"
               url="https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}"
             />
-            {mapView === 'issues' && issues.filter(i => i.lat && i.lng).map(issue => {
+            {mapView === 'issues' && filteredIssues.filter(i => i.lat && i.lng).map(issue => {
               let color = '#f59e0b';
               if (issue.status === 'Resolved') color = '#10b981';
               else if (issue.priority === 'High') color = '#ef4444';
@@ -516,7 +601,7 @@ export default function AdminDashboard() {
             {mapView === 'city' && Object.entries(districtCoords).map(([city, coords]) => {
               const cityIssues = issues.filter(i => i.city === city);
               if (cityIssues.length === 0) return null;
-              
+
               const resolvedCount = cityIssues.filter(i => i.status === 'Resolved').length;
               const pendingCount = cityIssues.filter(i => i.status === 'Pending' || !i.status).length;
               const inProgressCount = cityIssues.filter(i => i.status === 'In Progress').length;
@@ -536,30 +621,30 @@ export default function AdminDashboard() {
                     <div className="p-3 w-48">
                       <h4 className="font-black text-slate-900 uppercase border-b pb-2 mb-3 tracking-widest text-xs">{city} INFRA SCAN</h4>
                       <div className="space-y-2">
-                         <div className="flex justify-between items-center bg-slate-100 p-2 rounded">
-                            <span className="text-[9px] font-black text-slate-500 uppercase">Total Files</span>
-                            <span className="text-sm font-black text-slate-900">{cityIssues.length}</span>
-                         </div>
-                         <div className="flex justify-between items-center">
-                            <span className="text-[9px] font-bold text-emerald-600 uppercase">Resolved</span>
-                            <span className="text-xs font-black">{resolvedCount}</span>
-                         </div>
-                         <div className="flex justify-between items-center">
-                            <span className="text-[9px] font-bold text-blue-600 uppercase">Doing</span>
-                            <span className="text-xs font-black">{inProgressCount}</span>
-                         </div>
-                         <div className="flex justify-between items-center">
-                            <span className="text-[9px] font-bold text-amber-600 uppercase">Waiting</span>
-                            <span className="text-xs font-black">{pendingCount}</span>
-                         </div>
-                         {highPriorityCount > 0 && (
-                           <div className="mt-3 bg-red-100 p-2 rounded flex items-center justify-between border border-red-200">
-                             <span className="text-[9px] font-black text-red-600 uppercase">🚨 Critical Risks</span>
-                             <span className="text-xs font-black text-red-600">{highPriorityCount}</span>
-                           </div>
-                         )}
+                        <div className="flex justify-between items-center bg-slate-100 p-2 rounded">
+                          <span className="text-[9px] font-black text-slate-500 uppercase">Total Files</span>
+                          <span className="text-sm font-black text-slate-900">{cityIssues.length}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-[9px] font-bold text-emerald-600 uppercase">Resolved</span>
+                          <span className="text-xs font-black">{resolvedCount}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-[9px] font-bold text-blue-600 uppercase">Doing</span>
+                          <span className="text-xs font-black">{inProgressCount}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-[9px] font-bold text-amber-600 uppercase">Waiting</span>
+                          <span className="text-xs font-black">{pendingCount}</span>
+                        </div>
+                        {highPriorityCount > 0 && (
+                          <div className="mt-3 bg-red-100 p-2 rounded flex items-center justify-between border border-red-200">
+                            <span className="text-[9px] font-black text-red-600 uppercase">🚨 Critical Risks</span>
+                            <span className="text-xs font-black text-red-600">{highPriorityCount}</span>
+                          </div>
+                        )}
                       </div>
-                      <button onClick={() => {setFilterDistrict(city); setActiveTab('manage');}} className="w-full mt-4 bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest py-2 rounded hover:bg-slate-800 transition-colors">Inspect Unit ➔</button>
+                      <button onClick={() => { setFilterDistrict(city); setActiveTab('manage'); }} className="w-full mt-4 bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest py-2 rounded hover:bg-slate-800 transition-colors">Inspect Unit ➔</button>
                     </div>
                   </Popup>
                 </CircleMarker>
@@ -623,16 +708,26 @@ export default function AdminDashboard() {
                   <option value="Electrical">Electrical</option>
                 </select>
               </div>
-              <div>
-                <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Filter District</label>
-                <select className="input-field py-1.5 text-sm" value={filterDistrict} onChange={e => {
-                  setFilterDistrict(e.target.value);
-                  setFilterTaluka('All'); // Reset taluka when district changes
-                }}>
-                  <option value="All">All Districts</option>
-                  {availableDistricts.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
+<div>
+  <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Filter District</label>
+  {isDistrictAdmin ? (
+    <div className="input-field py-1.5 text-sm bg-slate-800/50 border-slate-700/50 px-3 flex items-center justify-between cursor-default">
+      <span className="font-black text-primary uppercase tracking-wider">{filterDistrict}</span>
+      <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold">LOCKED</span>
+    </div>
+  ) : (
+    <select
+      className="input-field py-1.5 text-sm"
+      value={filterDistrict}
+      onChange={e => {
+        setFilterDistrict(e.target.value);
+        setFilterTaluka('All');
+      }}>
+      <option value="All">All Districts</option>
+      {availableDistricts.map(d => <option key={d} value={d}>{d}</option>)}
+    </select>
+  )}
+</div>
               <div>
                 <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Filter Taluka</label>
                 <select className="input-field py-1.5 text-sm" value={filterTaluka} onChange={e => setFilterTaluka(e.target.value)}>
@@ -827,6 +922,88 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* ADMINS TAB */}
+      {activeTab === 'admins' && isMasterAdmin && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in slide-in-from-bottom-4">
+          <div className="lg:col-span-4">
+            <div className="glass-card p-8 border border-primary/30 shadow-2xl">
+              <h3 className="text-xl font-black text-white mb-6 uppercase tracking-widest flex items-center gap-2">➕ Register Admin</h3>
+              <form onSubmit={handleCreateAdmin} className="space-y-4">
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-black block mb-1.5">Full Name</label>
+                  <input type="text" className="input-field py-2.5 text-sm" required value={adminForm.name} onChange={e => setAdminForm({ ...adminForm, name: e.target.value })} placeholder="District Official Name" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-black block mb-1.5">Official Email</label>
+                  <input type="email" className="input-field py-2.5 text-sm" required value={adminForm.email} onChange={e => setAdminForm({ ...adminForm, email: e.target.value })} placeholder="name@district.gov.in" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-black block mb-1.5">Security Password</label>
+                  <input type="password" minLength="6" className="input-field py-2.5 text-sm" required value={adminForm.password} onChange={e => setAdminForm({ ...adminForm, password: e.target.value })} placeholder="••••••••" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-black block mb-1.5">Assigned District</label>
+                  <select className="input-field py-2.5 text-sm" required value={adminForm.department} onChange={e => setAdminForm({ ...adminForm, department: e.target.value })}>
+                    <option value="">Select District</option>
+                    {availableDistricts.map(d => <option key={d} value={d}>{d}</option>)}
+                    <option value="State Headquarters">State Headquarters</option>
+                  </select>
+                </div>
+                <button type="submit" disabled={addingAdmin} className="btn w-full mt-4 font-black py-4 uppercase tracking-[0.2em] text-xs">
+                  {addingAdmin ? 'Authorizing...' : 'Provision Account ➔'}
+                </button>
+              </form>
+              <p className="text-[9px] text-slate-500 italic mt-6 text-center">New administrators will have full access to manage reports for their assigned districts.</p>
+            </div>
+          </div>
+
+          <div className="lg:col-span-8 flex flex-col gap-6">
+            <div className="glass-card p-8 border border-slate-700/50 min-h-[500px]">
+              <div className="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">🛡️ Authorized Admin Network</h3>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Active administrative sessions and district identifiers</p>
+                </div>
+                <div className="bg-slate-800 px-3 py-1 rounded text-[10px] font-black text-primary border border-primary/20">{adminUsers.length} TOTAL SESSIONS</div>
+              </div>
+
+              <div className="space-y-4">
+                {adminUsers.map(adm => (
+                  <div key={adm.id} className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 flex items-center justify-between group hover:border-primary/30 transition-all">
+                    <div className="flex items-center gap-5">
+                      <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-xl shadow-inner border border-slate-700">
+                        {adm.id === 'MASTER-ADMIN' ? '🏛️' : '👤'}
+                      </div>
+                      <div>
+                        <div className="text-sm font-black text-white uppercase tracking-widest">{adm.name}</div>
+                        <div className="text-[10px] text-slate-500 font-bold flex items-center gap-2 mt-1">
+                          <span className="text-secondary">{adm.email}</span>
+                          <span className="w-1 h-1 bg-slate-700 rounded-full"></span>
+                          <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-[8px] border border-primary/20">{adm.department || 'General'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {adm.id !== 'MASTER-ADMIN' && isMasterAdmin && (
+                      <button onClick={() => handleDeleteAdmin(adm.id)} className="opacity-0 group-hover:opacity-100 btn bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all">
+                        Revoke Access
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {adminUsers.length === 0 && <div className="text-center py-20 text-slate-600 font-black uppercase tracking-widest italic opacity-50">Checking administrative pulse...</div>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {activeTab === 'admins' && !isMasterAdmin && (
+        <div className="glass-card p-12 text-center animate-in fade-in">
+          <div className="text-6xl mb-8 opacity-20">🔒</div>
+          <h3 className="text-2xl font-black text-slate-400 mb-4 uppercase tracking-widest">District Admin Restricted</h3>
+          <p className="text-slate-500 mb-8 max-w-md mx-auto leading-relaxed">Contact State Headquarters (gov@city.org) to manage district administrator accounts. District admins can manage issues in their assigned department.</p>
+          <button onClick={() => setActiveTab('overview')} className="btn bg-slate-800 hover:bg-slate-700 px-8 py-3 font-black uppercase tracking-wider text-sm">← Back to Overview</button>
+        </div>
+      )}
     </div>
   );
 }

@@ -20,12 +20,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
         setInfo('');
         setLoading(true);
 
-        // EXTRA SECURITY: Hard-filter Gov portal to only allow the official Master ID
-        if (mode === 'admin' && formData.email !== 'gov@city.org') {
-            setError('Invalid Credentials');
-            setLoading(false);
-            return;
-        }
+        // SECURITY: Role verification happens on both frontend and backend
 
         try {
             const res = await fetch('http://localhost:5000/api/auth/login', {
@@ -294,7 +289,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
                     </button>
                     <button
                         type="button"
-                        onClick={() => { setMode('admin'); setError(''); setFormData({ email: 'gov@city.org', password: '' }); }}
+                        onClick={() => { setMode('admin'); setError(''); setFormData({ email: '', password: '' }); }}
                         className={`flex-1 py-2 rounded-md text-xs font-bold transition-colors ${mode === 'admin' ? 'bg-amber-500 text-white shadow' : 'text-slate-400 hover:text-white'}`}
                     >
                         🏛️ Government

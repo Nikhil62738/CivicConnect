@@ -38,9 +38,9 @@ export default function IssueTracker() {
       );
     }
 
-    // Fetch issues - use public endpoint if no token
-    const url = token ? 'http://localhost:5000/api/issues' : 'http://localhost:5000/api/public/issues';
-    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    // Fetch issues - requires token
+    const url = 'http://localhost:5000/api/issues';
+    const headers = { 'Authorization': `Bearer ${token}` };
 
     fetch(url, { headers })
       .then(res => res.json())
@@ -178,7 +178,7 @@ export default function IssueTracker() {
   const filteredIssues = issues;
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col md:flex-row gap-8">
+    <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-12 flex flex-col lg:flex-row gap-6 md:gap-8">
       {/* Main Issue List */}
       <div className="flex-1 animate-in slide-in-from-left duration-500">
         <div className="flex justify-between items-end mb-8 border-b border-slate-700 pb-4">
@@ -312,7 +312,7 @@ export default function IssueTracker() {
       </div>
 
       {/* Sidebar: Leaderboard & Stats */}
-      <div className="w-full md:w-72 flex flex-col gap-6 animate-in slide-in-from-right duration-500 pt-16">
+      <div className="w-full lg:w-80 flex flex-col gap-6 animate-in slide-in-from-right duration-500 pt-8 lg:pt-16">
         {cityRanking && (
           <div className="glass-card p-6 border-emerald-500/20 bg-gradient-to-br from-slate-900 to-emerald-950/20">
             <h3 className="text-xl font-black text-white mb-4 flex items-center gap-2">
