@@ -227,8 +227,8 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || "*",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // ==========================================
 // SOCKET.IO SETUP
@@ -733,27 +733,29 @@ app.post('/api/issues', authenticateToken, async (req, res) => {
       { new: true }
     );
 
-    let newBadge = "Citizen";
-    if (userUpdate.points > 500) newBadge = "Civic Legend";
-    else if (userUpdate.points > 200) newBadge = "City Guardian";
-    else if (userUpdate.points > 50) newBadge = "Top Citizen";
+    if (userUpdate) {
+      let newBadge = "Citizen";
+      if (userUpdate.points > 500) newBadge = "Civic Legend";
+      else if (userUpdate.points > 200) newBadge = "City Guardian";
+      else if (userUpdate.points > 50) newBadge = "Top Citizen";
 
-    await User.findOneAndUpdate({ id: userId }, { badge: newBadge });
+      await User.findOneAndUpdate({ id: userId }, { badge: newBadge });
+    }
 
     // Save notification preferences
     const pref = new NotificationPreference({
       issue_id: issue._id,
       user_id: userId,
-      email: userUpdate.email,
-      phone: userUpdate.phone
+      email: userUpdate ? userUpdate.email : 'unknown@domain.com',
+      phone: userUpdate ? userUpdate.phone : ''
     });
     await pref.save();
 
     // Notifications
-    if (userUpdate.phone) {
+    if (userUpdate && userUpdate.phone) {
       sendSmsNotification(userUpdate.phone, `CivicConnect: Complaint ${complaintId} (${title}) registered successfully!`);
     }
-    if (userUpdate.email) {
+    if (userUpdate && userUpdate.email) {
       sendComplaintRegistrationEmail(userUpdate.email, complaintId, title, category, userUpdate.name);
     }
     sendPushNotification(userId, "Registered Successfully", `Complaint ${complaintId} is now tracked.`);
@@ -773,7 +775,8 @@ app.post('/api/issues', authenticateToken, async (req, res) => {
     io.emit('newIssueNearby', { lat, lng, title, category });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("[REPORT ISSUE ERROR]", err);
+    res.status(500).json({ error: err.message, details: err.stack });
   }
 });
 
@@ -1384,3 +1387,5 @@ app.delete('/api/admin/users/:id', authenticateToken, requireMasterAdmin, async 
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
+
+module.exports = app;

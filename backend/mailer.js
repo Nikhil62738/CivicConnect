@@ -174,7 +174,7 @@ const sendSmsOTP = async (phone, otp) => {
 const sendStatusUpdateEmail = async (email, complaintId, title, newStatus, remarks, userName = "Citizen", reportDate = "Recently", resolvedDate = null) => {
     const isResolved = newStatus === 'Resolved';
     const subject = `${isResolved ? '✅ Resolved' : '🔄 Update'}: ${title} - CivicConnect`;
-    
+
     const html = `
         <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 550px; padding: 0; border: 1px solid #e2e8f0; border-radius: 16px; background: #ffffff; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
             <div style="background: #4f46e5; padding: 30px; text-align: center;">
@@ -270,7 +270,7 @@ const sendStatusUpdateEmail = async (email, complaintId, title, newStatus, remar
  */
 const sendComplaintRegistrationEmail = async (email, complaintId, title, category, userName = "Citizen", reportDate = "Recently") => {
     const subject = `📥 Complaint Registered: ${complaintId} - CivicConnect`;
-    
+
     const html = `
         <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 550px; padding: 0; border: 1px solid #e2e8f0; border-radius: 16px; background: #ffffff; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
             <div style="background: #4f46e5; padding: 30px; text-align: center;">
@@ -346,7 +346,7 @@ const sendComplaintRegistrationEmail = async (email, complaintId, title, categor
             method: 'POST',
             headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'api-key': BREVO_API_KEY }
         };
-        const req = https.request(options, (res) => {});
+        const req = https.request(options, (res) => { });
         req.write(data); req.end();
         return;
     }

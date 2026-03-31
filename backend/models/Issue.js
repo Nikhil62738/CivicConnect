@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const issueSchema = new mongoose.Schema({
   complaint_id: { type: String, required: true, unique: true },
-  user_id: { type: mongoose.Schema.Types.String, ref: 'User.id', required: true },
+  user_id: { type: String, required: true },
   title: { type: String, required: true },
   category: { type: String, required: true },
   description: { type: String, required: true },
@@ -25,7 +25,7 @@ const issueSchema = new mongoose.Schema({
   updated_at: { type: Date, default: Date.now }
 }, { timestamps: false });
 
-issueSchema.index({ lat: '2dsphere', lng: '2dsphere' });
+issueSchema.index({ lat: 1, lng: 1 });
 issueSchema.index({ status: 1, priority: 1, created_at: -1 });
 issueSchema.index({ user_id: 1 });
 
