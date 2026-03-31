@@ -154,17 +154,17 @@ export default function UserProfile({ user, onClose, onUpdate }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-50/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="glass-card p-10 max-w-xl w-full relative animate-in zoom-in-95 duration-200 shadow-2xl overflow-y-auto max-h-[90vh]">
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-800 p-2 rounded-full transition-colors z-10 w-8 h-8 flex items-center justify-center">✕</button>
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-600 hover:text-slate-900 bg-white p-2 rounded-full transition-colors z-10 w-8 h-8 flex items-center justify-center">✕</button>
 
         <div className="flex items-center gap-5 mb-8">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-indigo-400 flex items-center justify-center text-3xl font-black shadow-lg text-white group relative overflow-hidden">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-indigo-400 flex items-center justify-center text-3xl font-black shadow-lg text-slate-900 group relative overflow-hidden">
             <span className="z-10">{currentUser?.name?.charAt(0) || 'C'}</span>
-            <div className="absolute inset-x-0 bottom-0 bg-black/40 text-[9px] text-center font-black uppercase py-0.5 tracking-tighter">LVL {Math.floor((currentUser?.points || 0) / 100) + 1}</div>
+            <div className="absolute inset-x-0 bottom-0 bg-black/40 text-white text-[9px] text-center font-black uppercase py-0.5 tracking-tighter">LVL {Math.floor((currentUser?.points || 0) / 100) + 1}</div>
           </div>
           <div className="flex-1">
-            <h2 className="text-2xl font-black text-white leading-none mb-2">{currentUser?.name}</h2>
+            <h2 className="text-2xl font-black text-slate-900 leading-none mb-2">{currentUser?.name}</h2>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-primary text-[8px] uppercase font-black tracking-widest bg-primary/10 px-2 py-1 rounded border border-primary/20">{currentUser?.role}</span>
               <span className="text-amber-400 text-[8px] uppercase font-black tracking-widest bg-amber-400/10 px-2 py-1 rounded border border-amber-400/20">{currentUser?.points || 0} Points</span>
@@ -175,12 +175,12 @@ export default function UserProfile({ user, onClose, onUpdate }) {
 
         {/* Contribution Summary */}
         <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 flex flex-col items-center">
-            <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Total Reports</span>
-            <span className="text-2xl font-black text-white">{stats.total}</span>
+          <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-300/50 flex flex-col items-center">
+            <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest mb-1">Total Reports</span>
+            <span className="text-2xl font-black text-slate-900">{stats.total}</span>
           </div>
-          <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 flex flex-col items-center">
-            <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Resolved</span>
+          <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-300/50 flex flex-col items-center">
+            <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest mb-1">Resolved</span>
             <span className="text-2xl font-black text-emerald-400">{stats.resolved}</span>
           </div>
         </div>
@@ -190,9 +190,9 @@ export default function UserProfile({ user, onClose, onUpdate }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Full Name</label>
+            <label className="block text-xs font-bold text-slate-600 uppercase tracking-widest mb-1.5">Full Name</label>
             <input
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-primary transition-colors focus:ring-1 focus:ring-primary"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300/50 rounded-lg text-slate-900 placeholder-slate-500 focus:outline-none focus:border-primary transition-colors focus:ring-1 focus:ring-primary"
               type="text"
               value={formData.name}
               onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -200,9 +200,9 @@ export default function UserProfile({ user, onClose, onUpdate }) {
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Email Address</label>
+            <label className="block text-xs font-bold text-slate-600 uppercase tracking-widest mb-1.5">Email Address</label>
             <input
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-primary transition-colors focus:ring-1 focus:ring-primary"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300/50 rounded-lg text-slate-900 placeholder-slate-500 focus:outline-none focus:border-primary transition-colors focus:ring-1 focus:ring-primary"
               type="email"
               value={formData.email}
               onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -210,9 +210,9 @@ export default function UserProfile({ user, onClose, onUpdate }) {
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Mobile Number</label>
+            <label className="block text-xs font-bold text-slate-600 uppercase tracking-widest mb-1.5">Mobile Number</label>
             <input
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-primary transition-colors focus:ring-1 focus:ring-primary"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300/50 rounded-lg text-slate-900 placeholder-slate-500 focus:outline-none focus:border-primary transition-colors focus:ring-1 focus:ring-primary"
               type="tel"
               value={formData.phone}
               onChange={e => setFormData({ ...formData, phone: e.target.value })}
@@ -220,10 +220,10 @@ export default function UserProfile({ user, onClose, onUpdate }) {
           </div>
 
           <div className="pt-2">
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">New Password <span className="text-[10px] text-slate-500 normal-case ml-1">(Requires Verification)</span></label>
+            <label className="block text-xs font-bold text-slate-600 uppercase tracking-widest mb-1.5">New Password <span className="text-[10px] text-slate-600 normal-case ml-1">(Requires Verification)</span></label>
             <div className="flex gap-2">
               <input
-                className="flex-1 px-4 py-2.5 bg-slate-900 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-primary transition-colors focus:ring-1 focus:ring-primary"
+                className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-300/50 rounded-lg text-slate-900 placeholder-slate-500 focus:outline-none focus:border-primary transition-colors focus:ring-1 focus:ring-primary"
                 type="password"
                 placeholder="Enter new password"
                 value={formData.password}
@@ -246,7 +246,7 @@ export default function UserProfile({ user, onClose, onUpdate }) {
                 value={formData.otp}
                 onChange={e => setFormData({ ...formData, otp: e.target.value })}
               />
-              <p className="text-[10px] text-slate-500 mt-2 text-center italic">A 6-digit code has been sent to your primary email address.</p>
+              <p className="text-[10px] text-slate-600 mt-2 text-center italic">A 6-digit code has been sent to your primary email address.</p>
             </div>
           )}
 
@@ -259,7 +259,7 @@ export default function UserProfile({ user, onClose, onUpdate }) {
           </button>
         </form>
 
-        <div className="mt-6 pt-5 border-t border-slate-700/50">
+        <div className="mt-6 pt-5 border-t border-slate-300/50">
           <button
             type="button"
             onClick={handleAccountDelete}
@@ -271,7 +271,7 @@ export default function UserProfile({ user, onClose, onUpdate }) {
           >
             {deleteLoading ? 'Deleting...' : 'Delete Account'}
           </button>
-          <p className="text-[10px] text-slate-500 mt-2 text-center">
+          <p className="text-[10px] text-slate-600 mt-2 text-center">
             Permanent action. Use with care.
           </p>
         </div>

@@ -137,11 +137,11 @@ export default function Login({ onLogin, onSwitchToRegister }) {
                     <h2 className="text-2xl font-black text-center bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
                         {isFirebaseFlow ? 'Check Your Email' : 'Enter OTP'}
                     </h2>
-                    <p className="text-xs text-center text-slate-400">
+                    <p className="text-xs text-center text-slate-600">
                         {isFirebaseFlow 
                             ? "We've sent a secure login link to:" 
                             : "A 6-digit code was sent to:"}<br />
-                        <span className="text-white font-bold">{displayEmail}</span>
+                        <span className="text-slate-900 font-bold">{displayEmail}</span>
                     </p>
 
                     {info && (
@@ -158,7 +158,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
 
                     <form onSubmit={verifyOtp} className="flex flex-col gap-4">
                         <div>
-                            <label className="block text-sm text-slate-400 mb-2 text-center">Enter 6-Digit Code</label>
+                            <label className="block text-sm text-slate-600 mb-2 text-center">Enter 6-Digit Code</label>
                             <input
                                 className="input-field text-center text-3xl tracking-[0.6em] font-mono"
                                 type="text"
@@ -193,7 +193,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
                     <button
                         type="button"
                         onClick={reset}
-                        className="text-slate-400 hover:text-white text-sm text-center transition-colors mt-1"
+                        className="text-slate-600 hover:text-slate-900 text-sm text-center transition-colors mt-1"
                     >
                         ← Back to Login
                     </button>
@@ -209,7 +209,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/20 blur-[120px] pointer-events-none"></div>
 
                 <form onSubmit={requestOtp} className="glass-card p-10 max-w-sm w-full flex flex-col gap-4 z-10 animate-in slide-in-from-left-8">
-                    <button type="button" onClick={() => { setLoginFlow('password'); setError(''); setInfo(''); }} className="text-slate-400 hover:text-white text-sm flex items-center gap-1 w-fit transition-colors">
+                    <button type="button" onClick={() => { setLoginFlow('password'); setError(''); setInfo(''); }} className="text-slate-600 hover:text-slate-900 text-sm flex items-center gap-1 w-fit transition-colors">
                         ← Back to Password Login
                     </button>
 
@@ -223,8 +223,8 @@ export default function Login({ onLogin, onSwitchToRegister }) {
                     <h2 className="text-2xl font-black text-center bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
                         Login with OTP
                     </h2>
-                    <p className="text-xs text-center text-slate-400">
-                        Enter your registered email. We'll send a one-time code to your <strong className="text-slate-300">email & mobile number</strong>.
+                    <p className="text-xs text-center text-slate-600">
+                        Enter your registered email. We'll send a one-time code to your <strong className="text-slate-700">email & mobile number</strong>.
                     </p>
 
                     {error && (
@@ -234,7 +234,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
                     )}
 
                     <div>
-                        <label className="block text-sm text-slate-400 mb-1">Registered Email</label>
+                        <label className="block text-sm text-slate-600 mb-1">Registered Email</label>
                         <input
                             className="input-field"
                             type="email"
@@ -255,7 +255,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
                         ) : '📨 Send OTP'}
                     </button>
 
-                    <p className="text-sm text-center text-slate-400 mt-1">
+                    <p className="text-sm text-center text-slate-600 mt-1">
                         New here?{' '}
                         <button type="button" onClick={onSwitchToRegister} className="text-primary hover:text-indigo-400 font-bold transition-colors">
                             Register
@@ -276,21 +276,21 @@ export default function Login({ onLogin, onSwitchToRegister }) {
                 <h2 className="text-3xl font-black text-center bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
                     Welcome Back
                 </h2>
-                <p className="text-xs text-center text-slate-400 mb-1">Sign in to report and track civic issues</p>
+                <p className="text-xs text-center text-slate-600 mb-1">Sign in to report and track civic issues</p>
 
                 {/* Citizen / Government Toggle */}
-                <div className="flex bg-slate-800 rounded-lg p-1 gap-1">
+                <div className="flex bg-white rounded-lg p-1 gap-1">
                     <button
                         type="button"
                         onClick={() => { setMode('user'); setError(''); setFormData({ email: '', password: '' }); }}
-                        className={`flex-1 py-2 rounded-md text-xs font-bold transition-colors ${mode === 'user' ? 'bg-primary text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                        className={`flex-1 py-2 rounded-md text-xs font-bold transition-colors ${mode === 'user' ? 'bg-primary text-white shadow' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                         👤 Citizen
                     </button>
                     <button
                         type="button"
                         onClick={() => { setMode('admin'); setError(''); setFormData({ email: '', password: '' }); }}
-                        className={`flex-1 py-2 rounded-md text-xs font-bold transition-colors ${mode === 'admin' ? 'bg-amber-500 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                        className={`flex-1 py-2 rounded-md text-xs font-bold transition-colors ${mode === 'admin' ? 'bg-amber-500 text-white shadow' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                         🏛️ Government
                     </button>
@@ -303,7 +303,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
                 )}
 
                 <div>
-                    <label className="block text-sm text-slate-400 mb-1">Email</label>
+                    <label className="block text-sm text-slate-600 mb-1">Email</label>
                     <input
                         className="input-field"
                         type="email"
@@ -315,7 +315,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
                 </div>
 
                 <div>
-                    <label className="block text-sm text-slate-400 mb-1">Password</label>
+                    <label className="block text-sm text-slate-600 mb-1">Password</label>
                     <input
                         className="input-field"
                         type="password"
@@ -349,7 +349,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
                 )}
 
                 {mode === 'user' && (
-                    <p className="text-sm text-center text-slate-400 mt-1">
+                    <p className="text-sm text-center text-slate-600 mt-1">
                         New to CivicConnect?{' '}
                         <button type="button" onClick={onSwitchToRegister} className="text-primary hover:text-indigo-400 font-bold transition-colors">
                             Register

@@ -278,25 +278,25 @@ const CivicChatbot = () => {
           <div className="bg-gradient-to-r from-indigo-600 to-primary p-4 flex justify-between items-center shadow-lg">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center animate-pulse">🤖</div>
-              <h3 className="text-white font-black text-xs uppercase tracking-widest">Voice Assistant</h3>
+              <h3 className="text-slate-900 font-black text-xs uppercase tracking-widest">Voice Assistant</h3>
             </div>
-            <button onClick={() => { setOpen(false); window.speechSynthesis.cancel(); }} className="text-white hover:text-indigo-200 text-lg">×</button>
+            <button onClick={() => { setOpen(false); window.speechSynthesis.cancel(); }} className="text-slate-900 hover:text-indigo-200 text-lg">×</button>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-900/40 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/40 custom-scrollbar">
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] p-3 rounded-2xl text-[11px] leading-relaxed shadow-lg ${m.role === 'user' ? 'bg-primary text-white font-bold rounded-tr-none' : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-tl-none'}`}>
+                <div className={`max-w-[85%] p-3 rounded-2xl text-[11px] leading-relaxed shadow-lg ${m.role === 'user' ? 'bg-primary text-white font-bold rounded-tr-none' : 'bg-white text-slate-800 border border-slate-300 rounded-tl-none'}`}>
                   {m.text}
                 </div>
               </div>
             ))}
-            {loading && <div className="text-[10px] text-slate-500 font-bold animate-pulse flex items-center gap-2"><span>Thinking...</span><div className="w-1 h-1 bg-primary rounded-full animate-ping"></div></div>}
+            {loading && <div className="text-[10px] text-slate-600 font-bold animate-pulse flex items-center gap-2"><span>Thinking...</span><div className="w-1 h-1 bg-primary rounded-full animate-ping"></div></div>}
           </div>
-          <div className="p-4 bg-slate-900/60 border-t border-slate-700/50 flex gap-2 items-center">
+          <div className="p-4 bg-slate-50/60 border-t border-slate-300/50 flex gap-2 items-center">
             <div className="relative flex-1">
               <input
                 type="text"
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-3 pr-10 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-primary h-10"
+                className="w-full bg-white border border-slate-300 rounded-lg pl-3 pr-10 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-primary h-10"
                 placeholder="Talk to me..."
                 value={input}
                 onChange={e => setInput(e.target.value)}
@@ -304,7 +304,7 @@ const CivicChatbot = () => {
               />
               <button
                 onClick={startVoice}
-                className={`absolute right-2 top-1.5 p-1 rounded-md transition-all ${isListening ? 'bg-red-500 text-white animate-pulse shadow-red-500/50 shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`absolute right-2 top-1.5 p-1 rounded-md transition-all ${isListening ? 'bg-red-500 text-slate-900 animate-pulse shadow-red-500/50 shadow-md' : 'text-slate-600 hover:text-slate-800'}`}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
               </button>
@@ -388,7 +388,7 @@ const UserHistory = ({ onActivity }) => {
   if (loading) return (
     <div className="max-w-4xl mx-auto py-24 px-6 text-center">
       <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-      <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-xs">Retrieving Your Archive...</p>
+      <p className="text-slate-600 font-black uppercase tracking-[0.2em] text-xs">Retrieving Your Archive...</p>
     </div>
   );
 
@@ -488,48 +488,48 @@ const UserHistory = ({ onActivity }) => {
     <div className="max-w-4xl mx-auto py-12 px-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-4xl font-black text-white relative">
+          <h2 className="text-4xl font-black text-slate-900 relative">
             My History
             <div className="absolute -bottom-2 left-0 w-12 h-1.5 bg-primary rounded-full"></div>
           </h2>
-          <p className="text-slate-400 mt-4 font-medium tracking-wide">Tracking your personal contributions to urban excellence.</p>
+          <p className="text-slate-600 mt-4 font-medium tracking-wide">Tracking your personal contributions to urban excellence.</p>
         </div>
-        <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 text-center shadow-xl">
+        <div className="bg-white/50 p-4 rounded-2xl border border-slate-300/50 text-center shadow-xl">
           <div className="text-3xl font-black text-primary">{myIssues.length}</div>
-          <div className="text-[8px] uppercase font-black text-slate-500 tracking-widest mt-1">Total Reports</div>
+          <div className="text-[8px] uppercase font-black text-slate-600 tracking-widest mt-1">Total Reports</div>
         </div>
       </div>
 
       <div className="space-y-6">
         {myIssues.map(issue => (
-          <div key={issue.id} className="glass-card p-8 border border-slate-700/30 hover:border-primary/40 transition-all flex flex-col md:flex-row gap-8 group shadow-2xl relative overflow-hidden">
+          <div key={issue.id} className="glass-card p-8 border border-slate-300/30 hover:border-primary/40 transition-all flex flex-col md:flex-row gap-8 group shadow-2xl relative overflow-hidden">
             <div className={`absolute top-0 left-0 w-1 h-full ${issue.status === 'Resolved' ? 'bg-emerald-500' : issue.is_escalated ? 'bg-indigo-500' : 'bg-amber-500'}`}></div>
 
             <div className="flex-1">
               <div className="flex flex-wrap gap-2 items-center mb-4">
                 <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-lg">ID: {issue.complaint_id}</span>
-                <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border ${issue.status === 'Resolved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border ${issue.status === 'Resolved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white text-slate-600 border-slate-300'}`}>
                   {issue.status}
                 </span>
                 {issue.is_escalated === 1 && <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 animate-pulse">⚖️ Escalated</span>}
               </div>
 
-              <h3 className="text-2xl font-black text-white mb-2 group-hover:text-primary transition-colors">{issue.title}</h3>
-              <p className="text-slate-400 text-sm leading-relaxed line-clamp-2 mb-6 font-medium">{issue.description}</p>
+              <h3 className="text-2xl font-black text-slate-900 mb-2 group-hover:text-primary transition-colors">{issue.title}</h3>
+              <p className="text-slate-600 text-sm leading-relaxed line-clamp-2 mb-6 font-medium">{issue.description}</p>
 
               {issue.admin_remarks && (
-                <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 mb-6 shadow-inner relative">
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 mb-6 shadow-inner relative">
                   <div className="text-[8px] font-black text-primary uppercase tracking-[0.2em] mb-2">🏛️ Official Administration Note</div>
-                  <p className="text-xs text-slate-300 italic font-medium leading-relaxed">"{issue.admin_remarks}"</p>
+                  <p className="text-xs text-slate-700 italic font-medium leading-relaxed">"{issue.admin_remarks}"</p>
                 </div>
               )}
 
-              <div className="flex items-center gap-6 pt-4 border-t border-slate-800/50 w-full">
-                <div className="flex items-center gap-2 text-[10px] text-slate-500 font-black uppercase tracking-widest">
+              <div className="flex items-center gap-6 pt-4 border-t border-slate-200/50 w-full">
+                <div className="flex items-center gap-2 text-[10px] text-slate-600 font-black uppercase tracking-widest">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                   {new Date(issue.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
                 </div>
-                <div className="flex items-center gap-2 text-[10px] text-slate-500 font-black uppercase tracking-widest">
+                <div className="flex items-center gap-2 text-[10px] text-slate-600 font-black uppercase tracking-widest">
                   <svg className="w-3.5 h-3.5 text-primary" fill="currentColor" viewBox="0 0 20 20"><path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.162-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" /></svg>
                   {issue.upvotes || 0} Citizens Supported
                 </div>
@@ -556,10 +556,10 @@ const UserHistory = ({ onActivity }) => {
             </div>
 
             {issue.media_url && (
-              <div className="w-full md:w-48 h-48 rounded-2xl overflow-hidden border border-slate-700/50 shadow-2xl relative group-hover:scale-[1.02] transition-transform duration-500">
+              <div className="w-full md:w-48 h-48 rounded-2xl overflow-hidden border border-slate-300/50 shadow-2xl relative group-hover:scale-[1.02] transition-transform duration-500">
                 <img src={issue.media_url} className="w-full h-full object-cover grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" alt="Report Content" />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent flex items-bottom p-4">
-                  <div className="mt-auto text-[8px] font-black uppercase tracking-widest text-white/60">Evidence Provided</div>
+                  <div className="mt-auto text-[8px] font-black uppercase tracking-widest text-slate-900/60">Evidence Provided</div>
                 </div>
               </div>
             )}
@@ -567,24 +567,24 @@ const UserHistory = ({ onActivity }) => {
         ))}
 
         {myIssues.length === 0 && (
-          <div className="bg-slate-900/40 rounded-[2rem] p-20 text-center border border-dashed border-slate-800 shadow-2xl">
+          <div className="bg-slate-50/40 rounded-[2rem] p-20 text-center border border-dashed border-slate-200 shadow-2xl">
             <div className="text-6xl mb-6 opacity-20">🗄️</div>
-            <h4 className="text-white font-black text-xl mb-2">No Archives Found</h4>
-            <p className="text-slate-500 font-medium mb-8 max-w-xs mx-auto text-sm">Your reporting history is empty. Start contributing to make your city better.</p>
+            <h4 className="text-slate-900 font-black text-xl mb-2">No Archives Found</h4>
+            <p className="text-slate-600 font-medium mb-8 max-w-xs mx-auto text-sm">Your reporting history is empty. Start contributing to make your city better.</p>
             <button className="btn px-10 py-3 text-xs font-black uppercase tracking-widest shadow-primary/20" onClick={() => window.location.reload()}>New Report</button>
           </div>
         )}
       </div>
 
       {editingIssue && (
-        <div className="fixed inset-0 z-[10000] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[10000] bg-slate-50/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="glass-card w-full max-w-2xl p-6 border-primary/30 shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-black text-white">Update Report</h3>
+              <h3 className="text-xl font-black text-slate-900">Update Report</h3>
               <button
                 type="button"
                 onClick={closeEditor}
-                className="text-slate-300 hover:text-white text-2xl leading-none"
+                className="text-slate-700 hover:text-slate-900 text-2xl leading-none"
                 aria-label="Close"
               >
                 &times;
@@ -594,7 +594,7 @@ const UserHistory = ({ onActivity }) => {
             <form onSubmit={handleUpdateSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Title</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-600">Title</label>
                   <input
                     className="input-field"
                     type="text"
@@ -605,9 +605,9 @@ const UserHistory = ({ onActivity }) => {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Category</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-600">Category</label>
                   <select
-                    className="input-field bg-slate-900"
+                    className="input-field bg-slate-50"
                     value={updateForm.category}
                     onChange={(e) => setUpdateForm(prev => ({ ...prev, category: e.target.value }))}
                   >
@@ -620,9 +620,9 @@ const UserHistory = ({ onActivity }) => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">District</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-600">District</label>
                   <select
-                    className="input-field bg-slate-900"
+                    className="input-field bg-slate-50"
                     value={updateForm.city}
                     onChange={(e) => setUpdateForm(prev => ({ ...prev, city: e.target.value, village: '' }))}
                   >
@@ -633,9 +633,9 @@ const UserHistory = ({ onActivity }) => {
                   </select>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Taluka</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-600">Taluka</label>
                   <select
-                    className="input-field bg-slate-900"
+                    className="input-field bg-slate-50"
                     value={updateForm.village}
                     onChange={(e) => setUpdateForm(prev => ({ ...prev, village: e.target.value }))}
                     disabled={!updateForm.city}
@@ -649,7 +649,7 @@ const UserHistory = ({ onActivity }) => {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-xs font-black uppercase tracking-widest text-slate-400">Description</label>
+                <label className="text-xs font-black uppercase tracking-widest text-slate-600">Description</label>
                 <textarea
                   className="input-field resize-none h-28"
                   value={updateForm.description}
@@ -658,10 +658,10 @@ const UserHistory = ({ onActivity }) => {
                 />
               </div>
 
-              <div className="flex items-center justify-between bg-slate-900/40 border border-slate-800/60 p-3 rounded-xl">
+              <div className="flex items-center justify-between bg-slate-50/40 border border-slate-200/60 p-3 rounded-xl">
                 <div className="flex flex-col">
-                  <span className="text-xs font-black uppercase tracking-widest text-slate-400">Emergency Reporting</span>
-                  <span className="text-[10px] text-slate-500 mt-1">Flags report as highest priority.</span>
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-600">Emergency Reporting</span>
+                  <span className="text-[10px] text-slate-600 mt-1">Flags report as highest priority.</span>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -670,26 +670,26 @@ const UserHistory = ({ onActivity }) => {
                     checked={updateForm.is_emergency}
                     onChange={(e) => setUpdateForm(prev => ({ ...prev, is_emergency: e.target.checked }))}
                   />
-                  <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
                 </label>
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-xs font-black uppercase tracking-widest text-slate-400">Update Media (optional)</label>
+                <label className="text-xs font-black uppercase tracking-widest text-slate-600">Update Media (optional)</label>
                 <div className="flex flex-col md:flex-row md:items-start gap-4">
                   <div className="flex-1">
                     <input
                       type="file"
                       accept="image/*,video/*"
                       onChange={(e) => setUpdateForm(prev => ({ ...prev, media: e.target.files[0] || null }))}
-                      className="block w-full text-xs text-slate-300 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-white hover:file:bg-indigo-500 cursor-pointer"
+                      className="block w-full text-xs text-slate-700 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-white hover:file:bg-indigo-500 cursor-pointer"
                     />
                   </div>
                   {editingIssue.media_url && !updateForm.media && (
                     <img
                       src={editingIssue.media_url}
                       alt="Current media"
-                      className="w-full md:w-28 h-20 md:h-20 object-cover rounded-xl border border-slate-800"
+                      className="w-full md:w-28 h-20 md:h-20 object-cover rounded-xl border border-slate-200"
                     />
                   )}
                 </div>
@@ -699,7 +699,7 @@ const UserHistory = ({ onActivity }) => {
                 <button
                   type="button"
                   onClick={closeEditor}
-                  className="btn flex-1 bg-slate-700 hover:bg-slate-600 text-white"
+                  className="btn flex-1 bg-slate-200 hover:bg-slate-600 text-slate-900"
                   disabled={isUpdating}
                 >
                   Cancel
@@ -714,7 +714,7 @@ const UserHistory = ({ onActivity }) => {
               </div>
             </form>
             {refreshing && (
-              <div className="mt-3 text-[10px] text-slate-500 text-center">Refreshing your history...</div>
+              <div className="mt-3 text-[10px] text-slate-600 text-center">Refreshing your history...</div>
             )}
           </div>
         </div>
@@ -1111,16 +1111,16 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-slate-900 text-slate-100 font-sans">
+    <div className="min-h-screen relative overflow-hidden bg-slate-50 text-slate-900 font-sans">
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/20 blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-secondary/20 blur-[120px] pointer-events-none"></div>
 
       {currentView !== 'admin' ? (
-        <header className="sticky top-0 z-[60] backdrop-blur-md bg-slate-900/60 border-b border-slate-700/50">
+        <header className="sticky top-0 z-[60] bg-[#003366] border-b border-[#002244] text-white shadow-md">
           <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="text-xl md:text-2xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary flex items-center gap-2 md:gap-4 transition-all duration-300">
+            <div className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-2 md:gap-4 transition-all duration-300">
               {t.title}
-              <select value={lang} onChange={(e) => setLang(e.target.value)} className="bg-slate-800 text-[10px] md:text-xs text-white border border-slate-600 rounded px-1.5 md:px-2 py-0.5 md:py-1 outline-none font-sans font-bold cursor-pointer hover:border-primary/50 transition-colors">
+              <select value={lang} onChange={(e) => setLang(e.target.value)} className="bg-white text-[10px] md:text-xs text-slate-900 border border-slate-600 rounded px-1.5 md:px-2 py-0.5 md:py-1 outline-none font-sans font-bold cursor-pointer hover:border-primary/50 transition-colors">
                 <option value="en">English</option>
                 <option value="hi">हिंदी</option>
                 <option value="mr">मराठी</option>
@@ -1137,33 +1137,33 @@ export default function App() {
               )}
               {user ? (
                 <>
-                  <button onClick={() => setCurrentView('report')} className={`${currentView === 'report' ? 'text-primary bg-primary/5 px-2 py-1 rounded-md' : 'text-slate-400'} hover:text-slate-200 transition-all duration-200 mr-2 flex items-center gap-1`}>
+                  <button onClick={() => setCurrentView('report')} className={`${currentView === 'report' ? 'text-white bg-white/20 px-2 py-1 rounded-md' : 'text-slate-200'} hover:text-white transition-all duration-200 mr-2 flex items-center gap-1`}>
                     📡 {t.reportIssue}
                   </button>
-                  <button onClick={() => setCurrentView('track')} className={`${currentView === 'track' ? 'text-primary bg-primary/5 px-2 py-1 rounded-md' : 'text-slate-400'} hover:text-slate-200 transition-all duration-200 mr-2 flex items-center gap-1`}>
+                  <button onClick={() => setCurrentView('track')} className={`${currentView === 'track' ? 'text-white bg-white/20 px-2 py-1 rounded-md' : 'text-slate-200'} hover:text-white transition-all duration-200 mr-2 flex items-center gap-1`}>
                     🛡️ {t.trackIssues}
                   </button>
-                  <button onClick={() => setCurrentView('history')} className={`${currentView === 'history' ? 'text-primary bg-primary/5 px-2 py-1 rounded-md' : 'text-slate-400'} hover:text-slate-200 transition-all duration-200 mr-2 flex items-center gap-1`}>
+                  <button onClick={() => setCurrentView('history')} className={`${currentView === 'history' ? 'text-white bg-white/20 px-2 py-1 rounded-md' : 'text-slate-200'} hover:text-white transition-all duration-200 mr-2 flex items-center gap-1`}>
                     📚 {t.myHistory}
                   </button>
                   {user.role === 'admin' && (
-                    <button onClick={() => setCurrentView('admin')} className="text-amber-500 font-extrabold shadow-sm hover:text-amber-400 transition-all text-[10px] tracking-[0.2em] uppercase border border-slate-800 px-3 py-1 rounded-md ml-2 hover:border-amber-500/30">
+                    <button onClick={() => setCurrentView('admin')} className="text-amber-500 font-extrabold shadow-sm hover:text-amber-400 transition-all text-[10px] tracking-[0.2em] uppercase border border-slate-200 px-3 py-1 rounded-md ml-2 hover:border-amber-500/30">
                       🔐 Admin Panel
                     </button>
                   )}
                   <NotificationBell complaintId={lastComplaintId} />
-                  <div className="flex items-center gap-3 ml-4 pl-4 border-l border-slate-700">
-                    <button onClick={() => setShowProfileModal(true)} className="text-slate-300 hover:text-primary transition-colors text-sm font-medium cursor-pointer">
+                  <div className="flex items-center gap-3 ml-4 pl-4 border-l border-slate-300">
+                    <button onClick={() => setShowProfileModal(true)} className="text-slate-700 hover:text-primary transition-colors text-sm font-medium cursor-pointer">
                       {t.welcome}, {user.name.split(' ')[0]}
                     </button>
-                    <button onClick={handleLogout} className="text-slate-400 hover:text-slate-200 transition-colors text-sm font-bold bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700/50 hover:bg-slate-800 active:scale-95 transition-all">
+                    <button onClick={handleLogout} className="text-slate-600 hover:text-slate-800 transition-colors text-sm font-bold bg-white/50 px-3 py-1.5 rounded-lg border border-slate-300/50 hover:bg-white active:scale-95 transition-all">
                       {t.logout}
                     </button>
                   </div>
                 </>
               ) : (
                 <>
-                  <button onClick={() => setCurrentView('login')} className={`${currentView === 'login' ? 'text-primary bg-primary/5 px-4 py-2 rounded-lg' : 'text-slate-400'} hover:text-slate-200 transition-all font-bold tracking-widest uppercase text-xs`}>
+                  <button onClick={() => setCurrentView('login')} className={`${currentView === 'login' ? 'text-primary bg-primary/5 px-4 py-2 rounded-lg' : 'text-slate-600'} hover:text-slate-800 transition-all font-bold tracking-widest uppercase text-xs`}>
                     {t.login}
                   </button>
                   <button onClick={() => setCurrentView('register')} className="bg-primary text-white font-black px-6 py-2.5 rounded-xl hover:shadow-lg hover:shadow-primary/20 hover:scale-105 active:scale-95 transition-all uppercase tracking-widest text-xs">
@@ -1178,7 +1178,7 @@ export default function App() {
               {user && <NotificationBell complaintId={lastComplaintId} />}
               <button 
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex flex-col items-center justify-center gap-1.5 transition-all active:scale-95"
+                className="w-10 h-10 rounded-xl bg-white border border-slate-300 flex flex-col items-center justify-center gap-1.5 transition-all active:scale-95"
               >
                 <div className={`w-5 h-0.5 bg-white rounded-full transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></div>
                 <div className={`w-5 h-0.5 bg-white rounded-full transition-all duration-300 ${mobileMenuOpen ? 'opacity-0' : ''}`}></div>
@@ -1188,23 +1188,23 @@ export default function App() {
           </div>
 
           {/* Mobile Menu Panel */}
-          <div className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out border-b border-slate-700 ${mobileMenuOpen ? 'max-h-[500px] py-6 opacity-100' : 'max-h-0 py-0 opacity-0'}`}>
+          <div className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out border-b border-slate-300 ${mobileMenuOpen ? 'max-h-[500px] py-6 opacity-100' : 'max-h-0 py-0 opacity-0'}`}>
             <div className="flex flex-col gap-3 px-6">
               {user ? (
                 <>
-                  <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 mb-2">
-                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">{t.welcome}</p>
-                    <p className="text-white font-bold">{user.name}</p>
-                    <p className="text-slate-400 text-xs mt-0.5 truncate">{user.email}</p>
+                  <div className="bg-white/50 p-4 rounded-2xl border border-slate-300/50 mb-2">
+                    <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest mb-1">{t.welcome}</p>
+                    <p className="text-slate-900 font-bold">{user.name}</p>
+                    <p className="text-slate-600 text-xs mt-0.5 truncate">{user.email}</p>
                     <button onClick={() => { setShowProfileModal(true); setMobileMenuOpen(false); }} className="text-primary text-[10px] font-black uppercase tracking-widest mt-3 hover:underline">View Profile</button>
                   </div>
-                  <button onClick={() => { setCurrentView('report'); setMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full p-4 rounded-2xl text-sm font-bold transition-all ${currentView === 'report' ? 'bg-primary text-white shadow-lg' : 'bg-slate-800 text-slate-300'}`}>
+                  <button onClick={() => { setCurrentView('report'); setMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full p-4 rounded-2xl text-sm font-bold transition-all ${currentView === 'report' ? 'bg-primary text-white shadow-lg' : 'bg-white text-slate-700'}`}>
                     📡 {t.reportIssue}
                   </button>
-                  <button onClick={() => { setCurrentView('track'); setMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full p-4 rounded-2xl text-sm font-bold transition-all ${currentView === 'track' ? 'bg-primary text-white shadow-lg' : 'bg-slate-800 text-slate-300'}`}>
+                  <button onClick={() => { setCurrentView('track'); setMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full p-4 rounded-2xl text-sm font-bold transition-all ${currentView === 'track' ? 'bg-primary text-white shadow-lg' : 'bg-white text-slate-700'}`}>
                     🛡️ {t.trackIssues}
                   </button>
-                  <button onClick={() => { setCurrentView('history'); setMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full p-4 rounded-2xl text-sm font-bold transition-all ${currentView === 'history' ? 'bg-primary text-white shadow-lg' : 'bg-slate-800 text-slate-300'}`}>
+                  <button onClick={() => { setCurrentView('history'); setMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full p-4 rounded-2xl text-sm font-bold transition-all ${currentView === 'history' ? 'bg-primary text-white shadow-lg' : 'bg-white text-slate-700'}`}>
                     📚 {t.myHistory}
                   </button>
                   {user.role === 'admin' && (
@@ -1218,7 +1218,7 @@ export default function App() {
                 </>
               ) : (
                 <>
-                  <button onClick={() => { setCurrentView('login'); setMobileMenuOpen(false); }} className="w-full p-4 rounded-2xl bg-slate-800 text-white font-bold text-center border border-slate-700">
+                  <button onClick={() => { setCurrentView('login'); setMobileMenuOpen(false); }} className="w-full p-4 rounded-2xl bg-white text-slate-900 font-bold text-center border border-slate-300">
                     {t.login}
                   </button>
                   <button onClick={() => { setCurrentView('register'); setMobileMenuOpen(false); }} className="w-full p-4 rounded-2xl bg-primary text-white font-black text-center shadow-lg uppercase tracking-widest">
@@ -1231,13 +1231,13 @@ export default function App() {
         </header>
 
       ) : (
-        <header className="sticky top-0 z-50 backdrop-blur-md bg-slate-900/80 border-b border-amber-500/30">
-          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <header className="sticky top-0 z-50 bg-[#003366] border-b border-[#002244] text-white shadow-md">
+          <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-amber-500/10 border border-amber-500 rounded-lg flex items-center justify-center">
                 <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
               </div>
-              <div className="text-xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-amber-400 to-amber-600 uppercase">
+              <div className="text-xl font-black tracking-tight text-white uppercase">
                 GovPortal
               </div>
             </div>
@@ -1245,7 +1245,7 @@ export default function App() {
               <span className="text-amber-500 text-xs font-bold uppercase tracking-widest">{user?.name} | {user?.email}</span>
               <button
                 onClick={handleLogout}
-                className="btn py-1.5 px-6 text-[10px] bg-red-500/10 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white uppercase tracking-widest transition-all"
+                className="btn py-1.5 px-6 text-[10px] bg-red-500/10 border border-red-500 text-red-500 hover:bg-red-500 hover:text-slate-900 uppercase tracking-widest transition-all"
               >
                 Sign Out ➔
               </button>
@@ -1255,10 +1255,10 @@ export default function App() {
       )}
 
       {authLoading ? (
-        <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center">
+        <div className="min-h-screen bg-slate-50 text-slate-100 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-slate-400">Loading...</p>
+            <p className="text-slate-600">Loading...</p>
           </div>
         </div>
       ) : !user ? (
@@ -1279,30 +1279,30 @@ export default function App() {
             <h1 className="text-4xl md:text-5xl lg:text-5xl font-extrabold leading-tight mb-4 md:mb-6 text-center lg:text-left transition-all">
               {t.makeCity} <br /><span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">{t.better}</span>
             </h1>
-            <p className="text-base md:text-lg text-slate-400 mb-6 md:mb-8 leading-relaxed text-center lg:text-left transition-all">
+            <p className="text-base md:text-lg text-slate-600 mb-6 md:mb-8 leading-relaxed text-center lg:text-left transition-all">
               {t.desc}
             </p>
             <div className="flex gap-3 md:gap-4 transition-all">
-              <div className="px-4 py-3 rounded-2xl bg-slate-800/80 border border-slate-700/50 flex flex-col w-1/2 items-center shadow-lg transition-transform hover:scale-[1.02]">
+              <div className="px-4 py-3 rounded-2xl bg-white/80 border border-slate-300/50 flex flex-col w-1/2 items-center shadow-lg transition-transform hover:scale-[1.02]">
                 <span className="text-2xl md:text-3xl font-bold text-primary">{counts.fixed > 1000 ? (counts.fixed / 1000).toFixed(1) + 'K+' : counts.fixed}</span>
-                <span className="text-[10px] text-slate-400 uppercase tracking-widest mt-1 font-black text-center">{t.issuesFixed}</span>
+                <span className="text-[10px] text-slate-600 uppercase tracking-widest mt-1 font-black text-center">{t.issuesFixed}</span>
               </div>
-              <div className="px-4 py-3 rounded-2xl bg-slate-800/80 border border-slate-700/50 flex flex-col w-1/2 items-center shadow-lg transition-transform hover:scale-[1.02]">
+              <div className="px-4 py-3 rounded-2xl bg-white/80 border border-slate-300/50 flex flex-col w-1/2 items-center shadow-lg transition-transform hover:scale-[1.02]">
                 <span className="text-2xl md:text-3xl font-bold text-secondary">{counts.avg}</span>
-                <span className="text-[10px] text-slate-400 uppercase tracking-widest mt-1 font-black text-center">{t.avgResponse}</span>
+                <span className="text-[10px] text-slate-600 uppercase tracking-widest mt-1 font-black text-center">{t.avgResponse}</span>
               </div>
             </div>
 
             {/* Regional Performance Leaderboard - Responsive Visibility: Show on mobile but more compact */}
-            <div className="mt-8 md:mt-12 bg-slate-900/50 border border-slate-800 rounded-[2rem] p-6 md:p-8 shadow-2xl relative overflow-hidden group">
+            <div className="mt-8 md:mt-12 bg-slate-50/50 border border-slate-200 rounded-[2rem] p-6 md:p-8 shadow-2xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl -z-10 group-hover:bg-primary/10 transition-colors"></div>
 
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
                     🏆 State Leaderboard <span className="text-primary/70 font-black tracking-tighter">(Top 5)</span>
                   </h3>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-tighter">Elite Top 5 of 36 Districts Ranked by Efficiency</p>
+                  <p className="text-[10px] text-slate-600 font-bold uppercase mt-1 tracking-tighter">Elite Top 5 of 36 Districts Ranked by Efficiency</p>
                 </div>
                 <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-md">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -1314,7 +1314,7 @@ export default function App() {
                 {globalLoading ? (
                   <div className="py-12 flex flex-col items-center justify-center space-y-4">
                     <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] animate-pulse">Awaiting Regional Pulse...</p>
+                    <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.2em] animate-pulse">Awaiting Regional Pulse...</p>
                   </div>
                 ) : (
                   <>
@@ -1324,19 +1324,19 @@ export default function App() {
                           <div className="flex items-center gap-3">
                             <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black border ${idx === 0 ? 'bg-amber-500 border-amber-400 text-black shadow-[0_0_10px_rgba(245,158,11,0.2)]' :
                               idx === 1 ? 'bg-slate-300 border-slate-200 text-black' :
-                                idx === 2 ? 'bg-amber-700 border-amber-600 text-white' :
-                                  'bg-slate-800 border-slate-700 text-slate-500'
+                                idx === 2 ? 'bg-amber-700 border-amber-600 text-slate-900' :
+                                  'bg-white border-slate-300 text-slate-600'
                               }`}>
                               {idx + 1}
                             </span>
-                            <span className="text-sm font-black text-slate-300 group-hover/item:text-white transition-colors uppercase tracking-tight">{city.name}</span>
+                            <span className="text-sm font-black text-slate-700 group-hover/item:text-slate-900 transition-colors uppercase tracking-tight">{city.name}</span>
                           </div>
                           <div className="text-right">
                             <span className="text-[10px] font-black text-primary">{city.score}% Success</span>
-                            <div className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">{city.solved} Resolved</div>
+                            <div className="text-[8px] font-bold text-slate-600 uppercase tracking-tighter">{city.solved} Resolved</div>
                           </div>
                         </div>
-                        <div className="w-full bg-slate-800/50 h-1.5 rounded-full overflow-hidden border border-slate-700/30">
+                        <div className="w-full bg-white/50 h-1.5 rounded-full overflow-hidden border border-slate-300/30">
                           <div
                             className={`h-full rounded-full transition-all duration-1000 ${city.score > 80 ? 'bg-emerald-500' :
                               city.score > 50 ? 'bg-primary' :
@@ -1348,29 +1348,29 @@ export default function App() {
                       </div>
                     ))}
                     {cityRanking.length === 0 && (
-                      <div className="py-8 text-center bg-slate-800/20 rounded-xl border border-dashed border-slate-700">
+                      <div className="py-8 text-center bg-white/20 rounded-xl border border-dashed border-slate-300">
                         <p className="text-[10px] text-slate-600 uppercase font-black tracking-widest">No Active Districts Yet</p>
                       </div>
                     )}
                   </>
                 )}
               </div>
-              <div className="mt-6 pt-4 border-t border-slate-800/50 flex items-center justify-center gap-2">
-                <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <p className="text-[8px] text-slate-500 italic font-medium">Rankings prioritize resolved-to-total ratio. Higher efficiency = Higher Rank.</p>
+              <div className="mt-6 pt-4 border-t border-slate-200/50 flex items-center justify-center gap-2">
+                <svg className="w-3 h-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <p className="text-[8px] text-slate-600 italic font-medium">Rankings prioritize resolved-to-total ratio. Higher efficiency = Higher Rank.</p>
               </div>
             </div>
           </div>
 
           <div className="lg:col-span-7 animate-in slide-in-from-right duration-700">
             <div className="glass-card p-6 md:p-8 shadow-2xl border-indigo-500/20">
-              <h2 className="text-xl md:text-2xl font-bold mb-6 text-white flex items-center gap-2">
+              <h2 className="text-xl md:text-2xl font-bold mb-6 text-slate-900 flex items-center gap-2">
                 <span className="p-2 bg-primary/10 rounded-lg">📋</span> {t.reportNew}
               </h2>
 
               <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5" autoComplete="off">
                 <div>
-                  <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5">{t.issueTitle}</label>
+                  <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-600 mb-1.5">{t.issueTitle}</label>
                   <input
                     type="text"
                     className="input-field"
@@ -1383,7 +1383,7 @@ export default function App() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                   <div>
-                    <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5">Category</label>
+                    <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-600 mb-1.5">Category</label>
                     <select
                       className="input-field appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1em_1em] bg-[right_1rem_center] bg-no-repeat pr-10"
                       required
@@ -1401,7 +1401,7 @@ export default function App() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5 flex justify-between">
+                    <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-600 mb-1.5 flex justify-between">
                       <span>Upload Media</span>
                       {aiParsing && <span className="text-[9px] text-primary animate-pulse flex items-center gap-1"><svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> AI Scanning...</span>}
                     </label>
@@ -1417,7 +1417,7 @@ export default function App() {
                         <div>
                           <div className="font-bold flex items-center gap-2">
                             AI: {aiResult.label} ({aiResult.confidence}%)
-                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter ${aiResult.severity === 'High' ? 'bg-red-500 text-white' : aiResult.severity === 'Low' ? 'bg-blue-500 text-white' : 'bg-amber-500 text-black'}`}>
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter ${aiResult.severity === 'High' ? 'bg-red-500 text-slate-900' : aiResult.severity === 'Low' ? 'bg-blue-500 text-slate-900' : 'bg-amber-500 text-black'}`}>
                               {aiResult.severity}
                             </span>
                           </div>
@@ -1429,12 +1429,12 @@ export default function App() {
 
                 <div className="bg-red-500/5 border border-red-500/20 p-3 md:p-4 rounded-xl flex items-center justify-between group hover:bg-red-500/10 transition-all">
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${formData.is_emergency ? 'bg-red-500 text-white animate-pulse shadow-red-500/50 shadow-md' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${formData.is_emergency ? 'bg-red-500 text-slate-900 animate-pulse shadow-red-500/50 shadow-md' : 'bg-white text-slate-600 border border-slate-300'}`}>
                       🚨
                     </div>
                     <div>
-                      <div className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-300">Hazard Level</div>
-                      <div className={`text-[10px] md:text-xs font-bold transition-colors ${formData.is_emergency ? 'text-red-400' : 'text-slate-500'}`}>Emergency Reporting</div>
+                      <div className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-700">Hazard Level</div>
+                      <div className={`text-[10px] md:text-xs font-bold transition-colors ${formData.is_emergency ? 'text-red-400' : 'text-slate-600'}`}>Emergency Reporting</div>
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer scale-90 md:scale-100">
@@ -1444,17 +1444,17 @@ export default function App() {
                       checked={formData.is_emergency}
                       onChange={(e) => setFormData({ ...formData, is_emergency: e.target.checked })}
                     />
-                    <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
                   </label>
                 </div>
 
                 <div>
-                  <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5 flex justify-between items-center">
+                  <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-600 mb-1.5 flex justify-between items-center">
                     <span>Description</span>
                     <button
                       type="button"
                       onClick={startDescriptionVoice}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${isListeningDescription ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'}`}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${isListeningDescription ? 'bg-red-500 text-slate-900 animate-pulse' : 'bg-white text-slate-600 hover:text-slate-800 border border-slate-300'}`}
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
                       {isListeningDescription ? 'Listening...' : 'Speak'}
@@ -1471,7 +1471,7 @@ export default function App() {
 
                 <div className="grid grid-cols-2 gap-4 md:gap-5">
                   <div>
-                    <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5">District</label>
+                    <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-600 mb-1.5">District</label>
                     <select
                       className="input-field text-xs md:text-sm appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1em_1em] bg-[right_0.5rem_center] md:bg-[right_1rem_center] bg-no-repeat pr-6 md:pr-10"
                       value={formData.city}
@@ -1484,7 +1484,7 @@ export default function App() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5">Taluka</label>
+                    <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-600 mb-1.5">Taluka</label>
                     <select
                       className="input-field text-xs md:text-sm appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1em_1em] bg-[right_0.5rem_center] md:bg-[right_1rem_center] bg-no-repeat pr-6 md:pr-10"
                       value={formData.village}
@@ -1500,13 +1500,13 @@ export default function App() {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5 flex justify-between items-end">
+                  <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-600 mb-1.5 flex justify-between items-end">
                     <span>Map Pinpoint</span>
-                    <span className="text-[8px] md:text-xs font-black uppercase text-slate-500">
+                    <span className="text-[8px] md:text-xs font-black uppercase text-slate-600">
                       {formData.lat ? `${formData.lat.toFixed(2)}, ${formData.lng.toFixed(2)}` : 'Tap to select'}
                     </span>
                   </label>
-                  <div className={`h-[250px] md:h-[300px] w-full relative rounded-2xl overflow-hidden border-2 transition-all ${formData.lat ? 'border-primary shadow-lg shadow-primary/10' : 'border-slate-700'}`}>
+                  <div className={`h-[250px] md:h-[300px] w-full relative rounded-2xl overflow-hidden border-2 transition-all ${formData.lat ? 'border-primary shadow-lg shadow-primary/10' : 'border-slate-300'}`}>
                     <MapContainer
                       center={defaultCenter}
                       zoom={5}
@@ -1533,13 +1533,13 @@ export default function App() {
                       </div>
                       <div>
                         <div className="text-[10px] font-black uppercase tracking-[2px] text-amber-500">Duplicate Found Nearby</div>
-                        <div className="text-xs text-slate-300 font-medium">This issue might already be reported.</div>
+                        <div className="text-xs text-slate-700 font-medium">This issue might already be reported.</div>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setCurrentView('track')}
-                      className="bg-amber-500 hover:bg-amber-400 text-slate-900 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg transition-all"
+                      className="bg-amber-500 hover:bg-amber-400 text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg transition-all"
                     >
                       Upvote Instead?
                     </button>
@@ -1554,7 +1554,7 @@ export default function App() {
                   >
                     {isSubmitting ? (
                       <>
-                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <svg className="animate-spin h-5 w-5 text-slate-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                         {t.submitting}
                       </>
                     ) : checkingDuplicates ? "Verifying..." : t.submit}
@@ -1568,25 +1568,25 @@ export default function App() {
 
 
       {showSuccess && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-50/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="glass-card p-10 flex flex-col items-center text-center max-w-sm w-full animate-in zoom-in-95 duration-200">
             <div className="w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center mb-6">
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
             </div>
             <h3 className="text-2xl font-bold mb-2">Report Submitted!</h3>
-            <p className="text-slate-400 mb-4 leading-relaxed">
+            <p className="text-slate-600 mb-4 leading-relaxed">
               Your complaint has been registered successfully.
             </p>
-            <div className="bg-slate-800 p-3 rounded-lg mb-6 w-full">
-              <p className="text-xs text-slate-400 mb-1">Complaint ID</p>
-              <p className="text-white font-mono text-lg">{showSuccess.complaintId}</p>
+            <div className="bg-white p-3 rounded-lg mb-6 w-full">
+              <p className="text-xs text-slate-600 mb-1">Complaint ID</p>
+              <p className="text-slate-900 font-mono text-lg">{showSuccess.complaintId}</p>
             </div>
-            <p className="text-slate-400 mb-8 leading-relaxed text-sm">
+            <p className="text-slate-600 mb-8 leading-relaxed text-sm">
               Use this ID to track your complaint status.
             </p>
             <div className="flex gap-3 w-full">
               <button
-                className="btn flex-1 bg-slate-700 hover:bg-slate-600"
+                className="btn flex-1 bg-slate-200 hover:bg-slate-600"
                 onClick={() => {
                   setShowSuccess(null);
                   setCurrentView('track');

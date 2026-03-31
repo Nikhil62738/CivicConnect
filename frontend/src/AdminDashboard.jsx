@@ -317,20 +317,20 @@ export default function AdminDashboard({ user }) {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
-          <h2 className="text-4xl font-black text-white bg-clip-text text-transparent bg-gradient-to-r from-primary to-emerald-400">Headquarters</h2>
+          <h2 className="text-4xl font-black text-slate-900 bg-clip-text text-transparent bg-gradient-to-r from-primary to-emerald-400">Headquarters</h2>
           <div className="flex items-center gap-2 mt-1">
-            <p className="text-slate-400 font-medium tracking-wide">City Infrastructure & Complaint Analytics</p>
+            <p className="text-slate-600 font-medium tracking-wide">City Infrastructure & Complaint Analytics</p>
             {isDistrictAdmin && <span className="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded border border-primary/30 uppercase font-black tracking-widest animate-pulse">🏛️ District Mode: {user.department}</span>}
           </div>
         </div>
 
-        <div className="flex bg-slate-800 rounded-lg p-1 shadow-xl border border-slate-700/50 overflow-x-auto no-scrollbar">
+        <div className="flex bg-white rounded-lg p-1 shadow-xl border border-slate-300/50 overflow-x-auto no-scrollbar">
           <div className="flex whitespace-nowrap">
-            <button onClick={() => setActiveTab('overview')} className={`px-4 md:px-5 py-2 rounded-md font-bold text-[11px] md:text-sm transition-colors ${activeTab === 'overview' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>Overview</button>
-            <button onClick={() => setActiveTab('analytics')} className={`px-4 md:px-5 py-2 rounded-md font-bold text-[11px] md:text-sm transition-colors ${activeTab === 'analytics' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>🚀 Analytics</button>
-            <button onClick={() => setActiveTab('map')} className={`px-4 md:px-5 py-2 rounded-md font-bold text-[11px] md:text-sm transition-colors ${activeTab === 'map' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>Heatmap</button>
-            <button onClick={() => setActiveTab('manage')} className={`px-4 md:px-5 py-2 rounded-md font-bold text-[11px] md:text-sm transition-colors ${activeTab === 'manage' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>Manage DB</button>
-            {isMasterAdmin && <button onClick={() => setActiveTab('admins')} className={`px-4 md:px-5 py-2 rounded-md font-bold text-[11px] md:text-sm transition-colors ${activeTab === 'admins' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>👤 District Admins</button>}
+            <button onClick={() => setActiveTab('overview')} className={`px-4 md:px-5 py-2 rounded-md font-bold text-[11px] md:text-sm transition-colors ${activeTab === 'overview' ? 'bg-primary text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}>Overview</button>
+            <button onClick={() => setActiveTab('analytics')} className={`px-4 md:px-5 py-2 rounded-md font-bold text-[11px] md:text-sm transition-colors ${activeTab === 'analytics' ? 'bg-primary text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}>🚀 Analytics</button>
+            <button onClick={() => setActiveTab('map')} className={`px-4 md:px-5 py-2 rounded-md font-bold text-[11px] md:text-sm transition-colors ${activeTab === 'map' ? 'bg-primary text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}>Heatmap</button>
+            <button onClick={() => setActiveTab('manage')} className={`px-4 md:px-5 py-2 rounded-md font-bold text-[11px] md:text-sm transition-colors ${activeTab === 'manage' ? 'bg-primary text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}>Manage DB</button>
+            {isMasterAdmin && <button onClick={() => setActiveTab('admins')} className={`px-4 md:px-5 py-2 rounded-md font-bold text-[11px] md:text-sm transition-colors ${activeTab === 'admins' ? 'bg-primary text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}>👤 District Admins</button>}
           </div>
         </div>
       </div>
@@ -340,12 +340,12 @@ export default function AdminDashboard({ user }) {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 animate-in slide-in-from-bottom-4">
 
           <div className="md:col-span-12 flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-4">
-            <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700 w-full sm:w-auto overflow-x-auto no-scrollbar">
+            <div className="flex bg-white rounded-lg p-1 border border-slate-300 w-full sm:w-auto overflow-x-auto no-scrollbar">
               {['Today', 'Weekly', 'Monthly', 'All'].map(t => (
-                <button key={t} onClick={() => setFilterTime(t)} className={`flex-1 sm:flex-none px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded transition-all whitespace-nowrap ${filterTime === t ? 'bg-primary text-white' : 'text-slate-500 hover:text-slate-300'}`}>{t}</button>
+                <button key={t} onClick={() => setFilterTime(t)} className={`flex-1 sm:flex-none px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded transition-all whitespace-nowrap ${filterTime === t ? 'bg-primary text-white' : 'text-slate-600 hover:text-slate-700'}`}>{t}</button>
               ))}
             </div>
-            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
+            <div className="text-[10px] text-slate-600 font-bold uppercase tracking-widest flex items-center gap-2">
               📅 Analyzing {filterTime} Trends
             </div>
           </div>
@@ -354,40 +354,40 @@ export default function AdminDashboard({ user }) {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="glass-card p-6 border-b-4 border-b-blue-500 relative overflow-hidden">
                 <div className="absolute -right-4 -bottom-4 opacity-10 text-blue-500"><svg className="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M10 20a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm-5.6-4.29a9.95 9.95 0 0 1 11.2 0 8 8 0 1 0-11.2 0zm6.12-7.64l3.02-3.02 1.41 1.41-3.02 3.02a2 2 0 1 1-1.41-1.41z" /></svg></div>
-                <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Total Complaints</h3>
-                <p className="text-5xl font-black text-white">{total}</p>
+                <h3 className="text-slate-600 font-bold uppercase tracking-widest text-xs mb-1">Total Complaints</h3>
+                <p className="text-5xl font-black text-slate-900">{total}</p>
               </div>
               <div className="glass-card p-6 border-b-4 border-b-emerald-500 relative overflow-hidden">
                 <div className="absolute -right-4 -bottom-4 opacity-10 text-emerald-500"><svg className="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M0 11l2-2 5 5L18 3l2 2L7 18z" /></svg></div>
-                <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Resolution Rate</h3>
+                <h3 className="text-slate-600 font-bold uppercase tracking-widest text-xs mb-1">Resolution Rate</h3>
                 <p className="text-5xl font-black text-emerald-400">{total > 0 ? Math.round((resolved / total) * 100) : 0}%</p>
               </div>
               <div className="glass-card p-6 border-b-4 border-b-amber-500 relative overflow-hidden">
                 <div className="absolute -right-6 -bottom-6 opacity-10 text-amber-500"><svg className="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M10 20a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-1-7.59V4h2v5.59l3.95 3.95-1.41 1.41L9 10.41z" /></svg></div>
-                <h3 className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Avg Res Time</h3>
+                <h3 className="text-slate-600 font-bold uppercase tracking-widest text-xs mb-1">Avg Res Time</h3>
                 <p className="text-5xl font-black text-amber-400">{avgResTimeHours}<span className="text-lg font-bold ml-1">hrs</span></p>
               </div>
             </div>
 
             {/* CITY PIPELINE - NEW FEATURE */}
-            <div className="glass-card p-6 border border-slate-700/50 bg-gradient-to-br from-slate-900 to-slate-800/50">
-              <div className="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
+            <div className="glass-card p-6 border border-slate-300/50 bg-gradient-to-br from-slate-900 to-slate-800/50">
+              <div className="flex justify-between items-center mb-8 border-b border-slate-200 pb-4">
                 <div>
-                  <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">🔄 City Pipeline Flow</h3>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Resource allocation and status tracking per district</p>
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">🔄 City Pipeline Flow</h3>
+                  <p className="text-[10px] text-slate-600 font-bold uppercase mt-1">Resource allocation and status tracking per district</p>
                 </div>
                 <div className="flex gap-4">
                   <div className="text-center px-3 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
                     <div className="text-[9px] text-emerald-400 font-black uppercase">Done</div>
-                    <div className="text-lg font-black text-white">{resolved}</div>
+                    <div className="text-lg font-black text-slate-900">{resolved}</div>
                   </div>
                   <div className="text-center px-3 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20">
                     <div className="text-[9px] text-blue-400 font-black uppercase">Doing</div>
-                    <div className="text-lg font-black text-white">{inProgress}</div>
+                    <div className="text-lg font-black text-slate-900">{inProgress}</div>
                   </div>
                   <div className="text-center px-3 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20">
                     <div className="text-[9px] text-amber-400 font-black uppercase">Wait</div>
-                    <div className="text-lg font-black text-white">{pending}</div>
+                    <div className="text-lg font-black text-slate-900">{pending}</div>
                   </div>
                 </div>
               </div>
@@ -400,17 +400,17 @@ export default function AdminDashboard({ user }) {
                   const wP = (city.Pending / totalCity) * 100;
 
                   return (
-                    <div key={city.name} className="space-y-2 group hover:bg-slate-800/40 p-2 rounded-xl transition-all cursor-pointer" onClick={() => { setFilterDistrict(city.name); setActiveTab('manage'); }}>
+                    <div key={city.name} className="space-y-2 group hover:bg-white/40 p-2 rounded-xl transition-all cursor-pointer" onClick={() => { setFilterDistrict(city.name); setActiveTab('manage'); }}>
                       <div className="flex justify-between items-center">
-                        <span className="text-xs font-black text-slate-300 uppercase tracking-widest">{city.name}</span>
+                        <span className="text-xs font-black text-slate-700 uppercase tracking-widest">{city.name}</span>
                         <span className="font-mono text-[10px] text-primary">{totalCity} Incident(s)</span>
                       </div>
-                      <div className="h-4 w-full bg-slate-800 rounded-full flex overflow-hidden border border-slate-700/50 shadow-inner">
+                      <div className="h-4 w-full bg-white rounded-full flex overflow-hidden border border-slate-300/50 shadow-inner">
                         <div className="bg-emerald-500 transition-all duration-700" style={{ width: `${rP}%` }}></div>
                         <div className="bg-blue-500 transition-all duration-700 opacity-80" style={{ width: `${iP}%` }}></div>
                         <div className="bg-amber-500 transition-all duration-700 opacity-60" style={{ width: `${wP}%` }}></div>
                       </div>
-                      <div className="flex justify-between text-[8px] font-black uppercase text-slate-500 tracking-tighter">
+                      <div className="flex justify-between text-[8px] font-black uppercase text-slate-600 tracking-tighter">
                         <span>🟢 {Math.round(rP)}% Solved</span>
                         <span>🔵 {Math.round(iP)}% Processing</span>
                         <span>🟡 {Math.round(wP)}% Queued</span>
@@ -420,7 +420,7 @@ export default function AdminDashboard({ user }) {
                 })}
               </div>
 
-              <div className="mt-8 pt-6 border-t border-slate-800">
+              <div className="mt-8 pt-6 border-t border-slate-200">
                 <h4 className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">⚠️ Risk Profile Assessment</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {Object.entries(issues.reduce((acc, curr) => {
@@ -432,7 +432,7 @@ export default function AdminDashboard({ user }) {
                     <div key={city} className="bg-red-500/5 border border-red-500/10 p-3 rounded-lg flex items-center justify-between">
                       <div>
                         <div className="text-[11px] font-black text-red-400 uppercase">{city}</div>
-                        <div className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">Critical Backlog</div>
+                        <div className="text-[9px] text-slate-600 font-bold uppercase mt-0.5">Critical Backlog</div>
                       </div>
                       <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center font-black text-red-500 text-xs shadow-[0_0_15px_rgba(239,68,68,0.2)] animate-pulse">{count}</div>
                     </div>
@@ -444,20 +444,20 @@ export default function AdminDashboard({ user }) {
 
           <div className="md:col-span-4 flex flex-col gap-8">
             {/* CITY RANKING & TRENDS */}
-            <div className="glass-card p-6 border border-slate-700/50 flex flex-col h-full rounded-2xl bg-slate-900/40">
-              <div className="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
-                <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">🏅 City Rankings</h3>
+            <div className="glass-card p-6 border border-slate-300/50 flex flex-col h-full rounded-2xl bg-slate-50/40">
+              <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-4">
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">🏅 City Rankings</h3>
               </div>
               <div className="flex-1 space-y-4 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
                 {cityRanking.map((city, idx) => {
                   const improvement = computeImprovement(city.name);
                   return (
-                    <div key={city.name} className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex items-center justify-between group hover:border-primary/50 transition-all cursor-pointer" onClick={() => { setFilterDistrict(city.name); setActiveTab('manage'); }}>
+                    <div key={city.name} className="bg-slate-50/80 p-4 rounded-xl border border-slate-200 flex items-center justify-between group hover:border-primary/50 transition-all cursor-pointer" onClick={() => { setFilterDistrict(city.name); setActiveTab('manage'); }}>
                       <div className="flex items-center gap-3">
-                        <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${idx === 0 ? 'bg-amber-500 text-black' : (idx === 1 ? 'bg-slate-300 text-black' : (idx === 2 ? 'bg-orange-800 text-white' : 'bg-slate-800 text-slate-500'))}`}>{idx + 1}</span>
+                        <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${idx === 0 ? 'bg-amber-500 text-black' : (idx === 1 ? 'bg-slate-300 text-black' : (idx === 2 ? 'bg-orange-800 text-slate-900' : 'bg-white text-slate-600'))}`}>{idx + 1}</span>
                         <div>
-                          <div className="text-[11px] font-black text-white uppercase tracking-widest">{city.name}</div>
-                          <div className="text-[9px] text-slate-500 font-bold uppercase">{city.solved} Resolved</div>
+                          <div className="text-[11px] font-black text-slate-900 uppercase tracking-widest">{city.name}</div>
+                          <div className="text-[9px] text-slate-600 font-bold uppercase">{city.solved} Resolved</div>
                         </div>
                       </div>
                       <div className="text-right">
@@ -486,17 +486,17 @@ export default function AdminDashboard({ user }) {
             {/* Department Rankings */}
             <div className="glass-card p-8 border border-indigo-500/30 bg-gradient-to-br from-slate-900 to-indigo-950/20 shadow-2xl">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-black text-white flex items-center gap-2">🏆 Dept Performance score</h3>
-                <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Ranked by Resolution & Speed</span>
+                <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">🏆 Dept Performance score</h3>
+                <span className="text-[10px] text-slate-600 uppercase font-bold tracking-widest">Ranked by Resolution & Speed</span>
               </div>
               <div className="space-y-4">
                 {performances.map((dept, idx) => (
-                  <div key={idx} className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-center justify-between group hover:border-indigo-500/50 transition-all">
+                  <div key={idx} className="bg-slate-50/50 p-4 rounded-xl border border-slate-200 flex items-center justify-between group hover:border-indigo-500/50 transition-all">
                     <div className="flex items-center gap-4">
-                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${idx === 0 ? 'bg-amber-500 text-black' : 'bg-slate-800 text-slate-400'}`}>{idx + 1}</span>
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${idx === 0 ? 'bg-amber-500 text-black' : 'bg-white text-slate-600'}`}>{idx + 1}</span>
                       <div>
-                        <div className="text-sm font-black text-white uppercase tracking-widest group-hover:text-primary transition-colors">{dept.department}</div>
-                        <div className="text-[10px] text-slate-500 font-bold uppercase">Avg Speed: <span className="text-emerald-400 font-black">{dept.avgSpeedHrs}h</span> | Resolved: <span className="text-blue-400 font-black">{dept.resolved}</span></div>
+                        <div className="text-sm font-black text-slate-900 uppercase tracking-widest group-hover:text-primary transition-colors">{dept.department}</div>
+                        <div className="text-[10px] text-slate-600 font-bold uppercase">Avg Speed: <span className="text-emerald-400 font-black">{dept.avgSpeedHrs}h</span> | Resolved: <span className="text-blue-400 font-black">{dept.resolved}</span></div>
                       </div>
                     </div>
                     <div className="text-right">
@@ -505,19 +505,19 @@ export default function AdminDashboard({ user }) {
                     </div>
                   </div>
                 ))}
-                {performances.length === 0 && <p className="text-slate-500 text-center py-10 font-medium italic">No performance metrics generated yet.</p>}
+                {performances.length === 0 && <p className="text-slate-600 text-center py-10 font-medium italic">No performance metrics generated yet.</p>}
               </div>
             </div>
 
             {/* Predictive Mapping */}
             <div className="glass-card p-8 border border-emerald-500/30 bg-gradient-to-br from-slate-900 to-emerald-950/10 shadow-2xl">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-black text-white flex items-center gap-2">📍 Predictive Hotspots</h3>
+                <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">📍 Predictive Hotspots</h3>
                 <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest animate-pulse">AI Engine Live</span>
               </div>
               <div className="space-y-4">
                 {predictions.map((pred, idx) => (
-                  <div key={idx} className="bg-slate-900/50 p-5 rounded-xl border border-emerald-500/10 border-l-4 border-l-emerald-500 relative overflow-hidden group">
+                  <div key={idx} className="bg-slate-50/50 p-5 rounded-xl border border-emerald-500/10 border-l-4 border-l-emerald-500 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-20 transition-opacity">
                       <svg className="w-16 h-16 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12 7a1 1 0 110-2h5V2a1 1 0 112 0v5a1 1 0 01-1 1h-6z" clipRule="evenodd" /><path d="M16.293 9.293a1 1 0 011.414 1.414l-9 9a1 1 0 01-1.414 0l-5-5a1 1 0 011.414-1.414L7 17.586l8.293-8.293z" /></svg>
                     </div>
@@ -525,16 +525,16 @@ export default function AdminDashboard({ user }) {
                       <span className="text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20">{pred.category} Risk</span>
                       <div className="flex flex-col items-end">
                         <span className="text-[9px] font-black text-emerald-500 uppercase tracking-tighter">Likelihood: {pred.likelihood}</span>
-                        <div className="w-16 h-1 bg-slate-800 rounded-full mt-1"><div className="bg-emerald-500 h-full rounded-full" style={{ width: '90%' }}></div></div>
+                        <div className="w-16 h-1 bg-white rounded-full mt-1"><div className="bg-emerald-500 h-full rounded-full" style={{ width: '90%' }}></div></div>
                       </div>
                     </div>
-                    <p className="text-sm text-slate-200 leading-relaxed font-bold mb-4">{pred.note}</p>
-                    <div className="flex items-center justify-between border-t border-slate-800 pt-3">
-                      <div className="flex items-center gap-2 text-[10px] text-slate-500 font-black uppercase tracking-widest">
+                    <p className="text-sm text-slate-800 leading-relaxed font-bold mb-4">{pred.note}</p>
+                    <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+                      <div className="flex items-center gap-2 text-[10px] text-slate-600 font-black uppercase tracking-widest">
                         <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         COORD: {pred.grid}
                       </div>
-                      <span className="text-[10px] text-slate-400 font-black uppercase tracking-tighter bg-slate-800 px-2 py-1 rounded">Exp: {pred.dow}</span>
+                      <span className="text-[10px] text-slate-600 font-black uppercase tracking-tighter bg-white px-2 py-1 rounded">Exp: {pred.dow}</span>
                     </div>
                   </div>
                 ))}
@@ -547,9 +547,9 @@ export default function AdminDashboard({ user }) {
 
       {/* HEATMAP TAB */}
       {activeTab === 'map' && (
-        <div className="glass-card p-2 h-[600px] border border-slate-700/50 relative shadow-2xl animate-in slide-in-from-bottom-4 overflow-hidden rounded-2xl">
-          <div className="absolute top-6 left-6 z-[1000] bg-slate-900/90 backdrop-blur-md p-4 rounded-xl border border-slate-700 shadow-2xl pointer-events-none">
-            <h4 className="text-white font-black mb-3">Live Risk Mapper</h4>
+        <div className="glass-card p-2 h-[600px] border border-slate-300/50 relative shadow-2xl animate-in slide-in-from-bottom-4 overflow-hidden rounded-2xl">
+          <div className="absolute top-6 left-6 z-[1000] bg-slate-50/90 backdrop-blur-md p-4 rounded-xl border border-slate-300 shadow-2xl pointer-events-none">
+            <h4 className="text-slate-900 font-black mb-3">Live Risk Mapper</h4>
             <div className="flex flex-col gap-2 text-xs font-bold tracking-widest uppercase">
               <span className="flex items-center gap-3 text-red-400"><div className="w-4 h-4 rounded-full bg-red-500/80 border-2 border-red-400"></div> High Priority</span>
               <span className="flex items-center gap-3 text-amber-400"><div className="w-4 h-4 rounded-full bg-amber-500/80 border-2 border-amber-400"></div> Normal</span>
@@ -562,9 +562,9 @@ export default function AdminDashboard({ user }) {
                 <span className="flex items-center gap-3 text-emerald-400"><div className="w-3 h-3 rounded-full bg-emerald-500/80 border border-emerald-400"></div> Resolved</span>
               </div>
             )}
-            <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700 pointer-events-auto">
-              <button onClick={() => setMapView('issues')} className={`flex-1 px-4 py-1 text-[9px] font-black uppercase tracking-wider rounded transition-all ${mapView === 'issues' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>📍 Pins</button>
-              <button onClick={() => setMapView('city')} className={`flex-1 px-4 py-1 text-[9px] font-black uppercase tracking-wider rounded transition-all ${mapView === 'city' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>🏢 Cities</button>
+            <div className="flex bg-white p-1 rounded-lg border border-slate-300 pointer-events-auto">
+              <button onClick={() => setMapView('issues')} className={`flex-1 px-4 py-1 text-[9px] font-black uppercase tracking-wider rounded transition-all ${mapView === 'issues' ? 'bg-primary text-white shadow-lg' : 'text-slate-600 hover:text-slate-700'}`}>📍 Pins</button>
+              <button onClick={() => setMapView('city')} className={`flex-1 px-4 py-1 text-[9px] font-black uppercase tracking-wider rounded transition-all ${mapView === 'city' ? 'bg-primary text-white shadow-lg' : 'text-slate-600 hover:text-slate-700'}`}>🏢 Cities</button>
             </div>
           </div>
 
@@ -591,7 +591,7 @@ export default function AdminDashboard({ user }) {
                     <div className="p-1">
                       <b className="text-slate-900 text-sm block mb-1">{issue.title}</b>
                       <span className="text-xs px-2 py-0.5 bg-slate-200 rounded block mb-1 font-mono">{issue.complaint_id}</span>
-                      <p className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mt-2">{issue.status} • {issue.department}</p>
+                      <p className="text-[10px] uppercase font-bold tracking-widest text-slate-600 mt-2">{issue.status} • {issue.department}</p>
                     </div>
                   </Popup>
                 </CircleMarker>
@@ -622,7 +622,7 @@ export default function AdminDashboard({ user }) {
                       <h4 className="font-black text-slate-900 uppercase border-b pb-2 mb-3 tracking-widest text-xs">{city} INFRA SCAN</h4>
                       <div className="space-y-2">
                         <div className="flex justify-between items-center bg-slate-100 p-2 rounded">
-                          <span className="text-[9px] font-black text-slate-500 uppercase">Total Files</span>
+                          <span className="text-[9px] font-black text-slate-600 uppercase">Total Files</span>
                           <span className="text-sm font-black text-slate-900">{cityIssues.length}</span>
                         </div>
                         <div className="flex justify-between items-center">
@@ -644,7 +644,7 @@ export default function AdminDashboard({ user }) {
                           </div>
                         )}
                       </div>
-                      <button onClick={() => { setFilterDistrict(city); setActiveTab('manage'); }} className="w-full mt-4 bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest py-2 rounded hover:bg-slate-800 transition-colors">Inspect Unit ➔</button>
+                      <button onClick={() => { setFilterDistrict(city); setActiveTab('manage'); }} className="w-full mt-4 bg-slate-50 text-slate-900 text-[9px] font-black uppercase tracking-widest py-2 rounded hover:bg-white transition-colors">Inspect Unit ➔</button>
                     </div>
                   </Popup>
                 </CircleMarker>
@@ -656,9 +656,9 @@ export default function AdminDashboard({ user }) {
 
       {/* MANAGE TAB */}
       {activeTab === 'manage' && (
-        <div className="glass-card overflow-hidden border border-slate-700/50 animate-in slide-in-from-bottom-4 shadow-2xl">
+        <div className="glass-card overflow-hidden border border-slate-300/50 animate-in slide-in-from-bottom-4 shadow-2xl">
 
-          <div className="bg-slate-900/50 p-6 border-b border-slate-700 space-y-4">
+          <div className="bg-slate-50/50 p-6 border-b border-slate-300 space-y-4">
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
               <div className="relative flex-1 w-full">
                 <input
@@ -668,12 +668,12 @@ export default function AdminDashboard({ user }) {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <svg className="w-4 h-4 absolute left-3 top-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <svg className="w-4 h-4 absolute left-3 top-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
               </div>
               <button
                 onClick={handleSync}
                 disabled={isRefreshing}
-                className="btn px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-black uppercase tracking-widest flex items-center gap-2"
+                className="btn px-6 py-2.5 bg-white hover:bg-slate-200 text-xs font-black uppercase tracking-widest flex items-center gap-2"
               >
                 <svg className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                 {isRefreshing ? 'Syncing...' : 'Sync Live Data'}
@@ -682,14 +682,14 @@ export default function AdminDashboard({ user }) {
 
             <div className="grid grid-cols-1 sm:grid-cols-7 gap-4 pt-2">
               <div>
-                <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Filter Category</label>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-slate-600 block mb-2">Filter Category</label>
                 <select className="input-field py-1.5 text-sm" value={filterCat} onChange={e => setFilterCat(e.target.value)}>
                   <option value="All">All Categories</option>
                   {Object.keys(cats).map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Filter Priority</label>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-slate-600 block mb-2">Filter Priority</label>
                 <select className="input-field py-1.5 text-sm" value={filterPri} onChange={e => setFilterPri(e.target.value)}>
                   <option value="All">All Priorities</option>
                   <option value="High">High</option>
@@ -698,7 +698,7 @@ export default function AdminDashboard({ user }) {
                 </select>
               </div>
               <div>
-                <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Dept Assignment</label>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-slate-600 block mb-2">Dept Assignment</label>
                 <select className="input-field py-1.5 text-sm" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
                   <option value="All">All Departments</option>
                   <option value="Unassigned">Unassigned</option>
@@ -709,9 +709,9 @@ export default function AdminDashboard({ user }) {
                 </select>
               </div>
 <div>
-  <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Filter District</label>
+  <label className="text-[10px] uppercase font-bold tracking-widest text-slate-600 block mb-2">Filter District</label>
   {isDistrictAdmin ? (
-    <div className="input-field py-1.5 text-sm bg-slate-800/50 border-slate-700/50 px-3 flex items-center justify-between cursor-default">
+    <div className="input-field py-1.5 text-sm bg-white/50 border-slate-300/50 px-3 flex items-center justify-between cursor-default">
       <span className="font-black text-primary uppercase tracking-wider">{filterDistrict}</span>
       <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold">LOCKED</span>
     </div>
@@ -729,13 +729,13 @@ export default function AdminDashboard({ user }) {
   )}
 </div>
               <div>
-                <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Filter Taluka</label>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-slate-600 block mb-2">Filter Taluka</label>
                 <select className="input-field py-1.5 text-sm" value={filterTaluka} onChange={e => setFilterTaluka(e.target.value)}>
                   <option value="All">All Talukas</option>
                   {availableTalukas.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-              <div className="flex items-end text-sm text-slate-400 font-bold justify-end pb-2">
+              <div className="flex items-end text-sm text-slate-600 font-bold justify-end pb-2">
                 <span className="text-primary mr-1">{filteredIssues.length}</span> matching records
               </div>
             </div>
@@ -743,29 +743,29 @@ export default function AdminDashboard({ user }) {
 
           <div className="overflow-x-auto min-h-[400px]">
             <table className="w-full text-left">
-              <thead className="bg-slate-800/80">
+              <thead className="bg-white/80">
                 <tr>
-                  <th className="p-4 text-xs tracking-widest uppercase text-slate-400 font-bold">ID / User</th>
-                  <th className="p-4 text-xs tracking-widest uppercase text-slate-400 font-bold w-1/3">Issue Context</th>
-                  <th className="p-4 text-xs tracking-widest uppercase text-slate-400 font-bold">Pipeline</th>
-                  <th className="p-4 text-xs tracking-widest uppercase text-slate-400 font-bold text-center">Action</th>
+                  <th className="p-4 text-xs tracking-widest uppercase text-slate-600 font-bold">ID / User</th>
+                  <th className="p-4 text-xs tracking-widest uppercase text-slate-600 font-bold w-1/3">Issue Context</th>
+                  <th className="p-4 text-xs tracking-widest uppercase text-slate-600 font-bold">Pipeline</th>
+                  <th className="p-4 text-xs tracking-widest uppercase text-slate-600 font-bold text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
                 {filteredIssues.map(issue => (
                   <React.Fragment key={issue.id}>
-                    <tr className="hover:bg-slate-800/20 transition-colors">
+                    <tr className="hover:bg-white/20 transition-colors">
                       <td className="p-4">
                         <div className="font-mono text-sm text-emerald-400 font-bold mb-1 flex items-center gap-2">
                           {issue.complaint_id}
-                          {issue.is_emergency === 1 && <span className="text-[8px] bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse uppercase tracking-tighter">Emergency</span>}
+                          {issue.is_emergency === 1 && <span className="text-[8px] bg-red-600 text-slate-900 px-2 py-0.5 rounded-full animate-pulse uppercase tracking-tighter">Emergency</span>}
                         </div>
-                        <div className="text-xs text-slate-500">{issue.user?.email || 'Anonymous'}</div>
+                        <div className="text-xs text-slate-600">{issue.user?.email || 'Anonymous'}</div>
                       </td>
                       <td className="p-4">
-                        <div className="font-bold text-white mb-1">{issue.title}</div>
+                        <div className="font-bold text-slate-900 mb-1">{issue.title}</div>
                         <div className="flex gap-2 items-center">
-                          <span className="text-[10px] uppercase tracking-widest bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-slate-300">{issue.category}</span>
+                          <span className="text-[10px] uppercase tracking-widest bg-white border border-slate-300 px-2 py-0.5 rounded text-slate-700">{issue.category}</span>
                           {issue.media_url && <span className="text-[10px] text-indigo-400 font-bold flex items-center gap-1">📸 Photo Attached</span>}
                         </div>
                       </td>
@@ -773,8 +773,8 @@ export default function AdminDashboard({ user }) {
                         <div className={`text-xs inline-block font-bold px-2 py-1 rounded mb-1 ${issue.status === 'Resolved' ? 'bg-emerald-500/20 text-emerald-400' : issue.status === 'In Progress' ? 'bg-blue-500/20 text-blue-400' : 'bg-amber-500/20 text-amber-500'}`}>
                           {issue.status || 'Pending'}
                         </div>
-                        <div className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
-                          DP: <span className="text-white">{issue.department || 'None'}</span>
+                        <div className="text-[10px] text-slate-600 uppercase tracking-widest font-bold">
+                          DP: <span className="text-slate-900">{issue.department || 'None'}</span>
                         </div>
                       </td>
                       <td className="p-4 text-center">
@@ -792,7 +792,7 @@ export default function AdminDashboard({ user }) {
                               });
                             }
                           }}
-                          className={`btn py-1.5 px-3 text-xs ${expandedIssue === issue.id ? 'bg-slate-700 hover:bg-slate-600 shadow-inner' : ''}`}
+                          className={`btn py-1.5 px-3 text-xs ${expandedIssue === issue.id ? 'bg-slate-200 hover:bg-slate-600 shadow-inner' : ''}`}
                         >
                           {expandedIssue === issue.id ? 'Close Panel' : 'Administrate ➔'}
                         </button>
@@ -801,20 +801,20 @@ export default function AdminDashboard({ user }) {
 
                     {/* EXPANDED EDIT PANEL */}
                     {expandedIssue === issue.id && (
-                      <tr className="bg-slate-900/80 shadow-inner border-l-4 border-l-primary">
+                      <tr className="bg-slate-50/80 shadow-inner border-l-4 border-l-primary">
                         <td colSpan="4" className="p-6">
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             {/* Evidence Context */}
                             <div className="space-y-4">
-                              <h4 className="font-black text-white text-[10px] uppercase tracking-widest border-b border-slate-800 pb-2">Visual Evidence</h4>
+                              <h4 className="font-black text-slate-900 text-[10px] uppercase tracking-widest border-b border-slate-200 pb-2">Visual Evidence</h4>
                               <div className="space-y-2">
                                 {issue.media_url ? (
-                                  <div className="rounded-lg overflow-hidden border border-slate-700">
+                                  <div className="rounded-lg overflow-hidden border border-slate-300">
                                     <img src={issue.media_url} className="w-full h-32 object-cover opacity-80" alt="Evidence" />
-                                    <div className="bg-slate-800 p-2 text-[9px] text-center text-slate-400 uppercase font-black tracking-widest">Initial Report Photo</div>
+                                    <div className="bg-white p-2 text-[9px] text-center text-slate-600 uppercase font-black tracking-widest">Initial Report Photo</div>
                                   </div>
                                 ) : (
-                                  <div className="bg-slate-800 p-4 rounded-lg border border-dashed border-slate-700 text-center text-[10px] text-slate-500 font-bold uppercase py-10">No Photo Attached</div>
+                                  <div className="bg-white p-4 rounded-lg border border-dashed border-slate-300 text-center text-[10px] text-slate-600 font-bold uppercase py-10">No Photo Attached</div>
                                 )}
 
                                 {issue.resolution_media_url && (
@@ -827,10 +827,10 @@ export default function AdminDashboard({ user }) {
                             </div>
 
                             <div className="space-y-4">
-                              <h4 className="font-black text-white text-[10px] uppercase tracking-widest border-b border-slate-800 pb-2">Control Matrix</h4>
+                              <h4 className="font-black text-slate-900 text-[10px] uppercase tracking-widest border-b border-slate-200 pb-2">Control Matrix</h4>
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold block mb-1">Status</label>
+                                  <label className="text-[10px] text-slate-600 uppercase tracking-widest font-bold block mb-1">Status</label>
                                   <select className="input-field py-1.5 text-sm" value={editFormData.status} onChange={e => setEditFormData({ ...editFormData, status: e.target.value })}>
                                     <option value="Pending">🟡 Pending</option>
                                     <option value="In Progress">🔵 In Progress</option>
@@ -838,7 +838,7 @@ export default function AdminDashboard({ user }) {
                                   </select>
                                 </div>
                                 <div>
-                                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold block mb-1">Priority</label>
+                                  <label className="text-[10px] text-slate-600 uppercase tracking-widest font-bold block mb-1">Priority</label>
                                   <select className="input-field py-1.5 text-sm" value={editFormData.priority} onChange={e => setEditFormData({ ...editFormData, priority: e.target.value })}>
                                     <option value="Low">Low</option>
                                     <option value="Normal">Normal</option>
@@ -847,7 +847,7 @@ export default function AdminDashboard({ user }) {
                                 </div>
                               </div>
                               <div>
-                                <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold block mb-1">Assign Department</label>
+                                <label className="text-[10px] text-slate-600 uppercase tracking-widest font-bold block mb-1">Assign Department</label>
                                 <select className="input-field py-1.5 text-sm" value={editFormData.department} onChange={e => setEditFormData({ ...editFormData, department: e.target.value })}>
                                   <option value="Unassigned">Leave Unassigned</option>
                                   <option value="Roads & Transport">Roads & Transport</option>
@@ -886,14 +886,14 @@ export default function AdminDashboard({ user }) {
                                       />
                                     </label>
                                   </div>
-                                  <p className="text-[9px] text-slate-500 italic">Select a photo from your device or paste a URL to provide proof of resolution.</p>
+                                  <p className="text-[9px] text-slate-600 italic">Select a photo from your device or paste a URL to provide proof of resolution.</p>
                                 </div>
                               )}
                             </div>
 
                             <div className="space-y-4 flex flex-col h-full">
                               <div>
-                                <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold block mb-1 flex items-center justify-between">
+                                <label className="text-[10px] text-slate-600 uppercase tracking-widest font-bold block mb-1 flex items-center justify-between">
                                   <span>Official Admin Remarks</span>
                                 </label>
                                 <textarea
@@ -917,7 +917,7 @@ export default function AdminDashboard({ user }) {
                 ))}
               </tbody>
             </table>
-            {filteredIssues.length === 0 && <div className="text-center p-12 text-slate-500">No records found matching these parameters.</div>}
+            {filteredIssues.length === 0 && <div className="text-center p-12 text-slate-600">No records found matching these parameters.</div>}
           </div>
         </div>
       )}
@@ -927,22 +927,22 @@ export default function AdminDashboard({ user }) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in slide-in-from-bottom-4">
           <div className="lg:col-span-4">
             <div className="glass-card p-8 border border-primary/30 shadow-2xl">
-              <h3 className="text-xl font-black text-white mb-6 uppercase tracking-widest flex items-center gap-2">➕ Register Admin</h3>
+              <h3 className="text-xl font-black text-slate-900 mb-6 uppercase tracking-widest flex items-center gap-2">➕ Register Admin</h3>
               <form onSubmit={handleCreateAdmin} className="space-y-4">
                 <div>
-                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-black block mb-1.5">Full Name</label>
+                  <label className="text-[10px] text-slate-600 uppercase tracking-widest font-black block mb-1.5">Full Name</label>
                   <input type="text" className="input-field py-2.5 text-sm" required value={adminForm.name} onChange={e => setAdminForm({ ...adminForm, name: e.target.value })} placeholder="District Official Name" />
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-black block mb-1.5">Official Email</label>
+                  <label className="text-[10px] text-slate-600 uppercase tracking-widest font-black block mb-1.5">Official Email</label>
                   <input type="email" className="input-field py-2.5 text-sm" required value={adminForm.email} onChange={e => setAdminForm({ ...adminForm, email: e.target.value })} placeholder="name@district.gov.in" />
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-black block mb-1.5">Security Password</label>
+                  <label className="text-[10px] text-slate-600 uppercase tracking-widest font-black block mb-1.5">Security Password</label>
                   <input type="password" minLength="6" className="input-field py-2.5 text-sm" required value={adminForm.password} onChange={e => setAdminForm({ ...adminForm, password: e.target.value })} placeholder="••••••••" />
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-black block mb-1.5">Assigned District</label>
+                  <label className="text-[10px] text-slate-600 uppercase tracking-widest font-black block mb-1.5">Assigned District</label>
                   <select className="input-field py-2.5 text-sm" required value={adminForm.department} onChange={e => setAdminForm({ ...adminForm, department: e.target.value })}>
                     <option value="">Select District</option>
                     {availableDistricts.map(d => <option key={d} value={d}>{d}</option>)}
@@ -953,38 +953,38 @@ export default function AdminDashboard({ user }) {
                   {addingAdmin ? 'Authorizing...' : 'Provision Account ➔'}
                 </button>
               </form>
-              <p className="text-[9px] text-slate-500 italic mt-6 text-center">New administrators will have full access to manage reports for their assigned districts.</p>
+              <p className="text-[9px] text-slate-600 italic mt-6 text-center">New administrators will have full access to manage reports for their assigned districts.</p>
             </div>
           </div>
 
           <div className="lg:col-span-8 flex flex-col gap-6">
-            <div className="glass-card p-8 border border-slate-700/50 min-h-[500px]">
-              <div className="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
+            <div className="glass-card p-8 border border-slate-300/50 min-h-[500px]">
+              <div className="flex justify-between items-center mb-8 border-b border-slate-200 pb-4">
                 <div>
-                  <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">🛡️ Authorized Admin Network</h3>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Active administrative sessions and district identifiers</p>
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">🛡️ Authorized Admin Network</h3>
+                  <p className="text-[10px] text-slate-600 font-bold uppercase mt-1">Active administrative sessions and district identifiers</p>
                 </div>
-                <div className="bg-slate-800 px-3 py-1 rounded text-[10px] font-black text-primary border border-primary/20">{adminUsers.length} TOTAL SESSIONS</div>
+                <div className="bg-white px-3 py-1 rounded text-[10px] font-black text-primary border border-primary/20">{adminUsers.length} TOTAL SESSIONS</div>
               </div>
 
               <div className="space-y-4">
                 {adminUsers.map(adm => (
-                  <div key={adm.id} className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 flex items-center justify-between group hover:border-primary/30 transition-all">
+                  <div key={adm.id} className="bg-slate-50/50 p-6 rounded-2xl border border-slate-200 flex items-center justify-between group hover:border-primary/30 transition-all">
                     <div className="flex items-center gap-5">
-                      <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-xl shadow-inner border border-slate-700">
+                      <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-xl shadow-inner border border-slate-300">
                         {adm.id === 'MASTER-ADMIN' ? '🏛️' : '👤'}
                       </div>
                       <div>
-                        <div className="text-sm font-black text-white uppercase tracking-widest">{adm.name}</div>
-                        <div className="text-[10px] text-slate-500 font-bold flex items-center gap-2 mt-1">
+                        <div className="text-sm font-black text-slate-900 uppercase tracking-widest">{adm.name}</div>
+                        <div className="text-[10px] text-slate-600 font-bold flex items-center gap-2 mt-1">
                           <span className="text-secondary">{adm.email}</span>
-                          <span className="w-1 h-1 bg-slate-700 rounded-full"></span>
+                          <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
                           <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-[8px] border border-primary/20">{adm.department || 'General'}</span>
                         </div>
                       </div>
                     </div>
                     {adm.id !== 'MASTER-ADMIN' && isMasterAdmin && (
-                      <button onClick={() => handleDeleteAdmin(adm.id)} className="opacity-0 group-hover:opacity-100 btn bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all">
+                      <button onClick={() => handleDeleteAdmin(adm.id)} className="opacity-0 group-hover:opacity-100 btn bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500 hover:text-slate-900 px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all">
                         Revoke Access
                       </button>
                     )}
@@ -999,9 +999,9 @@ export default function AdminDashboard({ user }) {
       {activeTab === 'admins' && !isMasterAdmin && (
         <div className="glass-card p-12 text-center animate-in fade-in">
           <div className="text-6xl mb-8 opacity-20">🔒</div>
-          <h3 className="text-2xl font-black text-slate-400 mb-4 uppercase tracking-widest">District Admin Restricted</h3>
-          <p className="text-slate-500 mb-8 max-w-md mx-auto leading-relaxed">Contact State Headquarters (gov@city.org) to manage district administrator accounts. District admins can manage issues in their assigned department.</p>
-          <button onClick={() => setActiveTab('overview')} className="btn bg-slate-800 hover:bg-slate-700 px-8 py-3 font-black uppercase tracking-wider text-sm">← Back to Overview</button>
+          <h3 className="text-2xl font-black text-slate-600 mb-4 uppercase tracking-widest">District Admin Restricted</h3>
+          <p className="text-slate-600 mb-8 max-w-md mx-auto leading-relaxed">Contact State Headquarters (gov@city.org) to manage district administrator accounts. District admins can manage issues in their assigned department.</p>
+          <button onClick={() => setActiveTab('overview')} className="btn bg-white hover:bg-slate-200 px-8 py-3 font-black uppercase tracking-wider text-sm">← Back to Overview</button>
         </div>
       )}
     </div>

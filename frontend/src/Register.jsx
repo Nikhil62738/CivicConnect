@@ -39,12 +39,12 @@ export default function Register({ onRegister, onSwitchToLogin }) {
 
       <form onSubmit={submit} className="glass-card p-10 max-w-sm w-full flex flex-col gap-4 z-10 animate-in slide-in-from-left-8">
         <h2 className="text-3xl font-black text-center mb-0 bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">Reclaim Your City</h2>
-        <p className="text-xs text-center text-slate-400 mb-2">We require your contact info for real-time notifications</p>
+        <p className="text-xs text-center text-slate-600 mb-2">We require your contact info for real-time notifications</p>
 
         {error && <div className="bg-red-500/20 text-red-400 p-3 rounded-lg text-sm font-semibold">{error}</div>}
 
         <div>
-          <label className="block text-sm text-slate-400 mb-1">Full Name</label>
+          <label className="block text-sm text-slate-600 mb-1">Full Name</label>
           <input
             className="input-field"
             type="text"
@@ -56,7 +56,7 @@ export default function Register({ onRegister, onSwitchToLogin }) {
         </div>
 
         <div>
-          <label className="block text-sm text-slate-400 mb-1">Email <span className="text-[10px] text-primary ml-1">(Required for updates)</span></label>
+          <label className="block text-sm text-slate-600 mb-1">Email <span className="text-[10px] text-primary ml-1">(Required for updates)</span></label>
           <input
             className="input-field"
             type="email"
@@ -68,7 +68,7 @@ export default function Register({ onRegister, onSwitchToLogin }) {
         </div>
 
         <div>
-          <label className="block text-sm text-slate-400 mb-1">Mobile Number <span className="text-[10px] text-primary ml-1" max-length="10" >(For SMS Alerts) </span></label>
+          <label className="block text-sm text-slate-600 mb-1">Mobile Number <span className="text-[10px] text-primary ml-1" max-length="10" >(For SMS Alerts) </span></label>
           <input
             className="input-field"
             type="tel"
@@ -80,7 +80,7 @@ export default function Register({ onRegister, onSwitchToLogin }) {
         </div>
 
         <div>
-          <label className="block text-sm text-slate-400 mb-1">Password</label>
+          <label className="block text-sm text-slate-600 mb-1">Password</label>
           <input
             className="input-field"
             type="password"
@@ -95,7 +95,7 @@ export default function Register({ onRegister, onSwitchToLogin }) {
           {loading ? 'Creating Account...' : 'Create Account'}
         </button>
 
-        <p className="text-sm text-center text-slate-400 mt-2">
+        <p className="text-sm text-center text-slate-600 mt-2">
           Already joined? <button type="button" onClick={onSwitchToLogin} className="text-primary hover:text-indigo-400 font-bold">Login</button>
         </p>
       </form>

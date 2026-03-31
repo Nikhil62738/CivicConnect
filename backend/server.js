@@ -502,9 +502,6 @@ app.put('/api/auth/profile', authenticateToken, async (req, res) => {
 
 // --- USER ACCOUNT DELETE (self) ---
 app.delete('/api/auth/account', authenticateToken, async (req, res) => {
-  const mongoose = require('mongoose');
-  const session = await mongoose.startSession();
-  session.startTransaction();
   try {
     const userId = req.user.id;
 
@@ -513,31 +510,27 @@ app.delete('/api/auth/account', authenticateToken, async (req, res) => {
     const issueIds = ownedIssues.map(i => i._id);
 
     // Remove all user-generated data
-    await Vote.deleteMany({ user_id: userId }).session(session);
-    await Comment.deleteMany({ user_id: userId }).session(session);
-    await NotificationPreference.deleteMany({ user_id: userId }).session(session);
-    await Verification.deleteMany({ user_id: userId }).session(session);
+    await Vote.deleteMany({ user_id: userId });
+    await Comment.deleteMany({ user_id: userId });
+    await NotificationPreference.deleteMany({ user_id: userId });
+    await Verification.deleteMany({ user_id: userId });
 
     if (issueIds.length > 0) {
-      await Vote.deleteMany({ issue_id: { $in: issueIds } }).session(session);
-      await Comment.deleteMany({ issue_id: { $in: issueIds } }).session(session);
-      await NotificationPreference.deleteMany({ issue_id: { $in: issueIds } }).session(session);
-      await Verification.deleteMany({ issue_id: { $in: issueIds } }).session(session);
-      await Issue.deleteMany({ _id: { $in: issueIds } }).session(session);
+      await Vote.deleteMany({ issue_id: { $in: issueIds } });
+      await Comment.deleteMany({ issue_id: { $in: issueIds } });
+      await NotificationPreference.deleteMany({ issue_id: { $in: issueIds } });
+      await Verification.deleteMany({ issue_id: { $in: issueIds } });
+      await Issue.deleteMany({ _id: { $in: issueIds } });
     }
 
-    await User.findOneAndDelete({ id: userId }).session(session);
-    await session.commitTransaction();
+    await User.findOneAndDelete({ id: userId });
 
     // Socket emit
     issueIds.forEach(id => io.emit('issueDeleted', { id }));
 
     res.json({ success: true, message: 'Account deleted successfully' });
   } catch (err) {
-    await session.abortTransaction();
     res.status(500).json({ error: err.message });
-  } finally {
-    session.endSession();
   }
 });
 
