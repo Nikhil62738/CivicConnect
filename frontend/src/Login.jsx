@@ -23,7 +23,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
         // SECURITY: Role verification happens on both frontend and backend
 
         try {
-            const res = await fetch('http://localhost:5000/api/auth/login', {
+            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: formData.email, password: formData.password })
@@ -58,7 +58,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
         setLoading(true);
 
         try {
-            const res = await fetch('http://localhost:5000/api/auth/send-otp', {
+            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/send-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ identifier: otpEmail })
@@ -84,7 +84,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
         setError('');
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:5000/api/auth/verify-otp', {
+            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/verify-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ identifier: otpEmail, otp })

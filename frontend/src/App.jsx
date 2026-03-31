@@ -256,7 +256,7 @@ const CivicChatbot = () => {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:5000/api/chat', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMsg.text })
@@ -367,7 +367,7 @@ const UserHistory = ({ onActivity }) => {
     else setRefreshing(true);
 
     try {
-      const res = await fetch('http://localhost:5000/api/user/my-issues', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/user/my-issues`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -442,7 +442,7 @@ const UserHistory = ({ onActivity }) => {
       };
       if (mediaUrl) payload.media_url = mediaUrl;
 
-      const res = await fetch(`http://localhost:5000/api/issues/${editingIssue.id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/issues/${editingIssue.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -471,7 +471,7 @@ const UserHistory = ({ onActivity }) => {
     if (!token) return alert('Please login again.');
 
     try {
-      const res = await fetch(`http://localhost:5000/api/issues/${issueId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/issues/${issueId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -762,7 +762,7 @@ export default function App() {
   const fetchGlobalData = async () => {
     if (globalIssues.length === 0) setGlobalLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/public/issues');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/public/issues`);
       const data = await res.json();
       const issues = data.issues || [];
       setGlobalIssues(issues);
@@ -816,7 +816,7 @@ export default function App() {
       const checkNearby = async () => {
         setCheckingDuplicates(true);
         try {
-          const res = await fetch(`http://localhost:5000/api/issues/check-duplicates?lat=${formData.lat}&lng=${formData.lng}&category=${formData.category}`, {
+          const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/issues/check-duplicates?lat=${formData.lat}&lng=${formData.lng}&category=${formData.category}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await res.json();
@@ -830,7 +830,7 @@ export default function App() {
 
       const fetchSuggestions = async () => {
         try {
-          const res = await fetch(`http://localhost:5000/api/smart-suggestions?lat=${formData.lat}&lng=${formData.lng}&radius=1`);
+          const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/smart-suggestions?lat=${formData.lat}&lng=${formData.lng}&radius=1`);
           const data = await res.json();
           setSmartSuggestions(data.suggestions || []);
         } catch (e) {
@@ -879,7 +879,7 @@ export default function App() {
       let syncedCount = 0;
       for (const item of offlineQueue) {
         try {
-          const res = await fetch('http://localhost:5000/api/issues', {
+          const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/issues`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${storedToken}` },
             body: JSON.stringify(item)
@@ -923,7 +923,7 @@ export default function App() {
       }
 
       // Verify role with server to prevent localStorage spoofing
-      fetch('http://localhost:5000/api/user/profile', {
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/user/profile`, {
         headers: { 'Authorization': `Bearer ${storedToken}` }
       })
         .then(res => res.json())
@@ -1079,7 +1079,7 @@ export default function App() {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/issues', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/issues`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

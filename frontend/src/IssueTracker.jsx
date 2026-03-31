@@ -39,7 +39,7 @@ export default function IssueTracker() {
     }
 
     // Fetch issues - requires token
-    const url = 'http://localhost:5000/api/issues';
+    const url = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/issues`;
     const headers = { 'Authorization': `Bearer ${token}` };
 
     fetch(url, { headers })
@@ -50,7 +50,7 @@ export default function IssueTracker() {
       .catch(console.error);
 
     // Fetch leaderboard
-    fetch('http://localhost:5000/api/leaderboard')
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/leaderboard`)
       .then(res => res.json())
       .then(data => {
         if (data.leaderboard) setLeaderboard(data.leaderboard);
@@ -58,13 +58,13 @@ export default function IssueTracker() {
       .catch(console.error);
 
     // Fetch city ranking
-    fetch('http://localhost:5000/api/city-ranking')
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/city-ranking`)
       .then(res => res.json())
       .then(data => setCityRanking(data))
       .catch(console.error);
 
     // Socket.IO for real-time updates
-    const socket = io('http://localhost:5000');
+    const socket = io(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}`);
 
     socket.on('issueCreated', (newIssue) => {
       setIssues(prev => [newIssue, ...prev]);
@@ -103,7 +103,7 @@ export default function IssueTracker() {
     setIssues(issues.map(i => i.id === id ? { ...i, upvotes: i.upvotes + 1 } : i));
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:5000/api/issues/${id}/vote`, { 
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/issues/${id}/vote`, { 
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -120,7 +120,7 @@ export default function IssueTracker() {
 
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:5000/api/issues/${id}/comments`, { 
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/issues/${id}/comments`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
         body: JSON.stringify({ content: text })
@@ -131,7 +131,7 @@ export default function IssueTracker() {
   const handleVerify = async (id, type) => {
      try {
        const token = localStorage.getItem('token');
-       const res = await fetch(`http://localhost:5000/api/issues/${id}/verify`, { 
+       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/issues/${id}/verify`, { 
          method: 'POST', 
          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
          body: JSON.stringify({ type })
