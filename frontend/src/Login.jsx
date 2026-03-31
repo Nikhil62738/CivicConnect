@@ -350,7 +350,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
 
                 {mode === 'user' && (
                     <p className="text-sm text-center text-slate-600 mt-1">
-                        New to CivicConnect?{' '}
+                        New to SwiftCivic?{' '}
                         <button type="button" onClick={onSwitchToRegister} className="text-primary hover:text-indigo-400 font-bold transition-colors">
                             Register
                         </button>
