@@ -26,7 +26,8 @@ if (EMAIL_USER && EMAIL_PASS) {
         port: 465,
         secure: true,
         auth: { user: EMAIL_USER, pass: EMAIL_PASS },
-        tls: { rejectUnauthorized: false }
+        tls: { rejectUnauthorized: false },
+        family: 4 // Force IPv4 to avoid ENETUNREACH on IPv6
     });
 
     // Verification check on startup
@@ -44,7 +45,8 @@ else if (MAILTRAP_USER && MAILTRAP_PASS) {
     emailTransporter = nodemailer.createTransport({
         host: "sandbox.smtp.mailtrap.io",
         port: 2525,
-        auth: { user: MAILTRAP_USER, pass: MAILTRAP_PASS }
+        auth: { user: MAILTRAP_USER, pass: MAILTRAP_PASS },
+        family: 4 // Force IPv4
     });
 } else {
     console.log(`[Mailer] No Email Transporter configured. Using Fallbacks.`);

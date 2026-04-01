@@ -1,4 +1,6 @@
 require('dotenv').config();
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
@@ -50,7 +52,8 @@ try {
     // GMAIL
     emailTransporter = nodemailer.createTransport({
       service: 'gmail',
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+      family: 4
     });
     console.log("[Notice] Gmail SMTP configured successfully.");
   } else if (process.env.MAILTRAP_USER && process.env.MAILTRAP_PASS) {
@@ -58,7 +61,8 @@ try {
     emailTransporter = nodemailer.createTransport({
       host: "sandbox.smtp.mailtrap.io",
       port: 2525,
-      auth: { user: process.env.MAILTRAP_USER, pass: process.env.MAILTRAP_PASS }
+      auth: { user: process.env.MAILTRAP_USER, pass: process.env.MAILTRAP_PASS },
+      family: 4
     });
     console.log("[Notice] Mailtrap (Dev) SMTP configured successfully.");
   } else {
