@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 
+import { maharashtraDistricts, API_URL } from './constants';
+
 export default function Login({ onLogin, onSwitchToRegister }) {
     const [mode, setMode] = useState('user'); // 'user' | 'admin'
     const [loginFlow, setLoginFlow] = useState('password');
@@ -23,7 +25,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
         // SECURITY: Role verification happens on both frontend and backend
 
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/login`, {
+            const res = await fetch(`${API_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: formData.email, password: formData.password })
@@ -58,7 +60,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
         setLoading(true);
 
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/send-otp`, {
+            const res = await fetch(`${API_URL}/api/auth/send-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ identifier: otpEmail })
@@ -84,7 +86,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
         setError('');
         setLoading(true);
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/verify-otp`, {
+            const res = await fetch(`${API_URL}/api/auth/verify-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ identifier: otpEmail, otp })
@@ -307,7 +309,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
                     <input
                         className="input-field"
                         type="email"
-                        placeholder={mode === 'admin' ? 'gov@city.org' : 'user@gmail.com'}
+                        placeholder={mode === 'admin' ? 'admin@city.org' : 'user@gmail.com'}
                         required
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}

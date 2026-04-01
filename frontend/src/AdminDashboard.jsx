@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from 'react-leaflet';
-import { maharashtraDistricts, districtCoords } from './constants';
+import { maharashtraDistricts, districtCoords, API_URL } from './constants';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -93,7 +93,7 @@ export default function AdminDashboard({ user }) {
   const fetchIssues = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/issues`, {
+      const res = await fetch(`${API_URL}/api/admin/issues`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.status === 401 || res.status === 403) {
@@ -111,8 +111,8 @@ export default function AdminDashboard({ user }) {
     try {
       const token = localStorage.getItem('token');
       const [perfRes, predRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/department-performance`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/issue-predictions`, { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${API_URL}/api/admin/department-performance`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/admin/issue-predictions`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
       const perfData = await perfRes.json();
       const predData = await predRes.json();
@@ -126,7 +126,7 @@ export default function AdminDashboard({ user }) {
   const fetchAdminUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/users`, {
+      const res = await fetch(`${API_URL}/api/admin/users`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -149,7 +149,7 @@ export default function AdminDashboard({ user }) {
     setSaving(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/issues/${id}/status`, {
+      const response = await fetch(`${API_URL}/api/issues/${id}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -186,7 +186,7 @@ export default function AdminDashboard({ user }) {
     setAddingAdmin(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/users`, {
+      const res = await fetch(`${API_URL}/api/admin/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -210,7 +210,7 @@ export default function AdminDashboard({ user }) {
     if (!window.confirm('Are you sure you want to remove this admin session?')) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/users/${id}`, {
+      const res = await fetch(`${API_URL}/api/admin/users/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

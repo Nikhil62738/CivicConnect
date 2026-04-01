@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { API_URL } from './constants';
 
 export default function NotificationBell({ complaintId }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -23,7 +24,7 @@ export default function NotificationBell({ complaintId }) {
        try {
            const token = localStorage.getItem('token');
            if (!token) return;
-           const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/user/notifications`, { 
+           const res = await fetch(`${API_URL}/api/user/notifications`, { 
                headers: { 'Authorization': `Bearer ${token}` } 
            });
            const data = await res.json();

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { districtCoords, maharashtraDistricts, API_URL } from './constants';
 
 export default function Register({ onRegister, onSwitchToLogin }) {
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '' });
@@ -11,7 +12,7 @@ export default function Register({ onRegister, onSwitchToLogin }) {
     setLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/register`, {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

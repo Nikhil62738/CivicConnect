@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { maharashtraDistricts } from './constants';
+import { maharashtraDistricts, API_URL } from './constants';
 
 export default function UserProfile({ user, onClose, onUpdate }) {
   const [formData, setFormData] = useState({
@@ -32,7 +32,7 @@ export default function UserProfile({ user, onClose, onUpdate }) {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/user/profile`, {
+      const res = await fetch(`${API_URL}/api/user/profile`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -49,7 +49,7 @@ export default function UserProfile({ user, onClose, onUpdate }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/profile-otp`, {
+      const res = await fetch(`${API_URL}/api/auth/profile-otp`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -91,7 +91,7 @@ export default function UserProfile({ user, onClose, onUpdate }) {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/profile`, {
+      const res = await fetch(`${API_URL}/api/auth/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ export default function UserProfile({ user, onClose, onUpdate }) {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Please login again.');
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/account`, {
+      const res = await fetch(`${API_URL}/api/auth/account`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

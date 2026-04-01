@@ -75,3 +75,5 @@ export const districtCoords = {
   'Washim': [20.1011, 77.1350],
   'Yavatmal': [20.3888, 78.1204]
 };
+
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';

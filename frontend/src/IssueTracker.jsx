@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_URL } from './constants';
 import io from 'socket.io-client';
 
 // Haversine formula to calculate distance between two points
@@ -39,7 +40,7 @@ export default function IssueTracker() {
     }
 
     // Fetch issues - requires token
-    const url = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/issues`;
+    const url = `${API_URL}/api/issues`;
     const headers = { 'Authorization': `Bearer ${token}` };
 
     fetch(url, { headers })
@@ -50,7 +51,7 @@ export default function IssueTracker() {
       .catch(console.error);
 
     // Fetch leaderboard
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/leaderboard`)
+    fetch(`${API_URL}/api/leaderboard`)
       .then(res => res.json())
       .then(data => {
         if (data.leaderboard) setLeaderboard(data.leaderboard);
@@ -58,13 +59,13 @@ export default function IssueTracker() {
       .catch(console.error);
 
     // Fetch city ranking
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/city-ranking`)
+    fetch(`${API_URL}/api/city-ranking`)
       .then(res => res.json())
       .then(data => setCityRanking(data))
       .catch(console.error);
 
     // Socket.IO for real-time updates
-    const socket = io(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}`);
+    const socket = io(`${API_URL}`);
 
     socket.on('issueCreated', (newIssue) => {
       setIssues(prev => [newIssue, ...prev]);
@@ -103,7 +104,7 @@ export default function IssueTracker() {
     setIssues(issues.map(i => i.id === id ? { ...i, upvotes: i.upvotes + 1 } : i));
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/issues/${id}/vote`, { 
+      await fetch(`${API_URL}/api/issues/${id}/vote`, { 
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -120,7 +121,7 @@ export default function IssueTracker() {
 
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/issues/${id}/comments`, { 
+      await fetch(`${API_URL}/api/issues/${id}/comments`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
         body: JSON.stringify({ content: text })
@@ -131,7 +132,7 @@ export default function IssueTracker() {
   const handleVerify = async (id, type) => {
      try {
        const token = localStorage.getItem('token');
-       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/issues/${id}/verify`, { 
+       const res = await fetch(`${API_URL}/api/issues/${id}/verify`, { 
          method: 'POST', 
          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
          body: JSON.stringify({ type })
