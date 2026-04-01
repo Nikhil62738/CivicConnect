@@ -4,99 +4,97 @@
 
 ---
 
-## Table of Contents
+## 📌 Overview
 
-- [Overview](#overview)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Getting Started](#getting-started)
-  - [1. Database Setup](#1-database-setup)
-  - [2. Backend Setup](#2-backend-setup)
-  - [3. Frontend Setup](#3-frontend-setup)
-- [Environment Variables](#environment-variables)
-- [Firebase Notifications (Optional)](#firebase-notifications-optional)
-- [Usage](#usage)
-- [Contributing](#contributing)
+CivicConnect is a full-stack web application that connects citizens with local authorities. Users can report civic issues like potholes, water leaks, and streetlight failures, while admins can manage and update their status.
 
 ---
 
-## Overview
+## 🚀 Tech Stack
 
-CivicConnect is a full-stack web application that bridges the gap between citizens and local authorities. Citizens can submit civic issues (potholes, broken streetlights, water leaks, etc.) with location data pinned on a map, and administrators can triage and update issue statuses — with push notification support via Firebase.
-
----
-
-## Tech Stack
-
-| Layer       | Technology                          |
-|-------------|--------------------------------------|
-| Frontend    | React.js, Tailwind CSS, Vite         |
-| Backend     | Node.js, Express                     |
-| Database    | MySQL                                |
-| Maps        | Google Maps API                      |
-| Notifications | Firebase (FCM / Web Push)          |
+| Layer         | Technology                   |
+| ------------- | ---------------------------- |
+| Frontend      | React.js, Tailwind CSS, Vite |
+| Backend       | Node.js (No Express)         |
+| Database      | MongoDB                      |
+| Maps          | Google Maps API              |
+| Notifications | Firebase (Optional)          |
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 CivicConnect/
-├── backend/          # Express API server
-│   ├── src/
-│   ├── .env          # Backend environment variables
+├── backend/
+│   ├── server.js        # Main server (Node.js HTTP)
+│   ├── db.js            # MongoDB connection
+│   ├── routes/
+│   │   └── issues.js    # API routes
+│   ├── .env             # Environment variables
 │   └── package.json
-├── frontend/         # React + Vite client
+│
+├── frontend/
 │   ├── src/
-│   │   └── App.jsx   # Replace API key here
 │   └── package.json
+│
 └── README.md
 ```
 
 ---
 
-## Prerequisites
+## ⚙️ Prerequisites
 
-Ensure you have the following installed before getting started:
+Make sure you have:
 
-- [Node.js](https://nodejs.org/) (v18 or higher recommended)
-- [MySQL](https://www.mysql.com/) (v8 or higher)
-- A [Google Maps API Key](https://developers.google.com/maps/documentation/javascript/get-api-key)
-- *(Optional)* A [Firebase project](https://console.firebase.google.com/) for push notifications
-
----
-
-## Getting Started
-
-### 1. Database Setup
-
-1. Make sure your MySQL server is running.
-2. Create a database named `civic_db`:
-   ```sql
-   CREATE DATABASE civic_db;
-   ```
-3. The backend will automatically create the required `issues` table on first startup — no manual migration needed.
-
-> You can change the database name by updating the relevant variable in `backend/.env`.
+* Node.js (v18 or higher)
+* MongoDB (Local or Atlas)
+* Google Maps API Key
+* *(Optional)* Firebase project for notifications
 
 ---
 
-### 2. Backend Setup
+## 🛠️ Getting Started
+
+### 1️⃣ Clone Repository
+
+```bash
+git clone https://github.com/your-username/civicconnect.git
+cd civicconnect
+```
+
+---
+
+### 2️⃣ Backend Setup
 
 ```bash
 cd backend
 npm install
-npm run dev
 ```
 
-The backend server will start at **http://localhost:5000**.
+Create `.env` file:
 
-Make sure your `backend/.env` file is configured before starting (see [Environment Variables](#environment-variables)).
+```env
+PORT=5000
+MONGO_URI=mongodb://127.0.0.1:27017
+DB_NAME=civic_db
+```
+
+Start server:
+
+```bash
+node server.js
+```
+
+Server will run on:
+
+```
+http://localhost:5000
+```
 
 ---
 
-### 3. Frontend Setup
+### 3️⃣ Frontend Setup
 
 ```bash
 cd frontend
@@ -104,75 +102,118 @@ npm install
 npm run dev
 ```
 
-The frontend will be accessible at **http://localhost:5173**.
+Frontend runs on:
 
-Before running, open `frontend/src/App.jsx` and replace the placeholder with your actual Google Maps API key:
-
-```jsx
-// Replace this:
-const MAPS_API_KEY = "YOUR_GOOGLE_MAPS_API_KEY";
-
-// With your actual key:
-const MAPS_API_KEY = "AIzaSy...";
+```
+http://localhost:5173
 ```
 
 ---
 
-## Environment Variables
+## 🔗 API Endpoints
 
-Create a `.env` file inside the `backend/` directory with the following variables:
+### 📌 Get All Issues
 
-```env
-# Server
-PORT=5000
-
-# MySQL Database
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=your_mysql_password
-DB_NAME=civic_db
-
-# Firebase Admin (optional — for push notifications)
-FIREBASE_PROJECT_ID=your_project_id
-FIREBASE_CLIENT_EMAIL=your_client_email
-FIREBASE_PRIVATE_KEY="your_private_key"
+```
+GET /api/issues
 ```
 
-> ⚠️ Never commit your `.env` file to version control. Add it to `.gitignore`.
+### 📌 Create Issue
+
+```
+POST /api/issues
+```
+
+**Request Body Example:**
+
+```json
+{
+  "title": "Pothole on road",
+  "description": "Large pothole near bus stop",
+  "location": "Ratnagiri"
+}
+```
 
 ---
 
-## Firebase Notifications (Optional)
+## 🌐 Features
 
-Firebase packages (`firebase` and `firebase-admin`) are included in the dependencies but require your own project credentials to activate.
+### 👤 Citizen
 
-To enable push/web notifications when an issue status is updated by an admin:
+* Report civic issues
+* View all issues
+* Track issue status
 
-1. Create a project at [Firebase Console](https://console.firebase.google.com/).
-2. Generate a **service account key** (Project Settings → Service Accounts → Generate new private key).
-3. Add the credentials to your `backend/.env` (see above).
-4. Initialize Firebase in your backend using `firebase-admin` with the service account credentials.
-5. On the frontend, use the `firebase` SDK to subscribe users to notifications using their FCM token.
+### 🛠️ Admin
 
----
-
-## Usage
-
-Once both servers are running:
-
-1. Open **http://localhost:5173** in your browser.
-2. **Citizens** can:
-   - Submit a new civic issue with a description and location pin on the map.
-   - View existing issues and their current statuses.
-3. **Admins** can:
-   - View all reported issues on a dashboard.
-   - Update issue statuses (e.g., *Pending → In Progress → Resolved*).
-   - Trigger notifications to reporters on status change (if Firebase is configured).
+* View reported issues
+* Update issue status
+* Manage civic complaints
 
 ---
 
-Please ensure your code is clean, well-commented, and tested before submitting.
+## 🔐 Environment Variables
+
+| Variable  | Description               |
+| --------- | ------------------------- |
+| PORT      | Server port               |
+| MONGO_URI | MongoDB connection string |
+| DB_NAME   | Database name             |
 
 ---
 
-*Built with ❤️ to empower communities and improve local governance.*
+## 🔔 Firebase Notifications (Optional)
+
+To enable push notifications:
+
+1. Create Firebase project
+2. Generate service account key
+3. Add credentials in `.env`
+4. Use Firebase Admin SDK in backend
+
+---
+
+## 📦 Deployment
+
+### Backend (Render / VPS)
+
+* Set environment variables
+* Start command:
+
+```
+node server.js
+```
+
+### Frontend (Netlify / Vercel)
+
+* Build command:
+
+```
+npm run build
+```
+
+---
+
+## ⚠️ Important Notes
+
+* No Express is used — pure Node.js HTTP module
+* Manual routing and body parsing implemented
+* Ensure MongoDB is running before backend start
+
+---
+
+## ❤️ Acknowledgment
+
+Built to improve communication between citizens and authorities for better civic management.
+
+---
+
+## 📧 Contact
+
+**Developer:** Nikhil Chopade
+Full Stack Developer
+nikhilchopade24155@gmail.com
+
+---
+
+⭐ If you like this project, don’t forget to star the repo!
