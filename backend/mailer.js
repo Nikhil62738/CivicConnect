@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { google } = require('googleapis');
 const https = require('https');
 
 /**
@@ -9,7 +10,11 @@ const https = require('https');
 // --- 1. CONFIGURATION ---
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const EMAIL_USER = process.env.EMAIL_USER;
-const EMAIL_PASS = process.env.EMAIL_PASS;
+const GMAIL_CLIENT_ID = process.env.GMAIL_CLIENT_ID;
+const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET;
+const GMAIL_REFRESH_TOKEN = process.env.GMAIL_REFRESH_TOKEN;
+const GMAIL_REDIRECT_URI = process.env.GMAIL_REDIRECT_URI || 'https://developers.google.com/oauthplayground';
+const GMAIL_SENDER = process.env.GMAIL_SENDER || EMAIL_USER;
 const MAILTRAP_USER = process.env.MAILTRAP_USER;
 const MAILTRAP_PASS = process.env.MAILTRAP_PASS;
 const TWILIO_SID = process.env.TWILIO_ACCOUNT_SID;
@@ -18,26 +23,13 @@ const TWILIO_PHONE = process.env.TWILIO_PHONE_NUMBER;
 
 // --- 2. TRANSPORTERS ---
 let emailTransporter = null;
+let gmailClient = null;
 
-if (EMAIL_USER && EMAIL_PASS) {
-    console.log(`[Mailer] Initializing Secure SMTPS (Port 465) for: ${EMAIL_USER}`);
-    emailTransporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        auth: { user: EMAIL_USER, pass: EMAIL_PASS },
-        tls: { rejectUnauthorized: false },
-        family: 4 // Force IPv4 to avoid ENETUNREACH on IPv6
-    });
-
-    // Verification check on startup
-    emailTransporter.verify((error, success) => {
-        if (error) {
-            console.error(`[Mailer Error] Transporter Failed: ${error.message}`);
-        } else {
-            console.log(`[Mailer Success] Server is ready to take our messages!`);
-        }
-    });
+if (GMAIL_CLIENT_ID && GMAIL_CLIENT_SECRET && GMAIL_REFRESH_TOKEN && GMAIL_SENDER) {
+    const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REDIRECT_URI);
+    oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN });
+    gmailClient = google.gmail({ version: 'v1', auth: oauth2Client });
+    console.log(`[Mailer] Gmail API configured for: ${GMAIL_SENDER}`);
 }
 // Option B: Mailtrap (Secondary Fallback)
 else if (MAILTRAP_USER && MAILTRAP_PASS) {
@@ -49,8 +41,61 @@ else if (MAILTRAP_USER && MAILTRAP_PASS) {
         family: 4 // Force IPv4
     });
 } else {
-    console.log(`[Mailer] No Email Transporter configured. Using Fallbacks.`);
+    console.log(`[Mailer] No Gmail API or Email Transporter configured. Using Fallbacks.`);
 }
+
+const toBase64Url = (input) => Buffer.from(input)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+
+const encodeMimeWord = (input) => `=?UTF-8?B?${Buffer.from(input, 'utf8').toString('base64')}?=`;
+
+const sendConfiguredEmail = async ({ to, subject, html, fromName = 'CivicConnect' }) => {
+    if (gmailClient) {
+        const raw = [
+            `From: ${encodeMimeWord(fromName)} <${GMAIL_SENDER}>`,
+            `To: ${to}`,
+            `Subject: ${encodeMimeWord(subject)}`,
+            'MIME-Version: 1.0',
+            'Content-Type: text/html; charset=UTF-8',
+            '',
+            html
+        ].join('\r\n');
+
+        await gmailClient.users.messages.send({
+            userId: 'me',
+            requestBody: { raw: toBase64Url(raw) }
+        });
+        return true;
+    }
+
+    if (emailTransporter) {
+        await emailTransporter.sendMail({
+            from: `"${fromName}" <${GMAIL_SENDER || EMAIL_USER || 'no-reply@civic.gov'}>`,
+            to,
+            subject,
+            html
+        });
+        return true;
+    }
+
+    return false;
+};
+
+const sendAppEmail = async (to, subject, html, fromName = 'CivicConnect') => {
+    try {
+        if (await sendConfiguredEmail({ to, subject, html, fromName })) {
+            console.log(`[Email Sent] ${gmailClient ? 'Gmail API' : 'Nodemailer'} SUCCESS to: ${to}`);
+            return true;
+        }
+    } catch (e) {
+        console.error(`[Email Failed] ${gmailClient ? 'Gmail API' : 'Nodemailer'} error:`, e.message);
+    }
+
+    return false;
+};
 
 /**
  * Generates a secure 6-digit OTP
@@ -73,21 +118,13 @@ const sendEmailOTP = async (email, otp, name = "Citizen") => {
         </div>
     `;
 
-    // --- 1. PRIORITIZE NODEMAILER ---
-    if (emailTransporter) {
-        try {
-            await emailTransporter.sendMail({ from: `"CivicConnect" <${EMAIL_USER || 'no-reply@civic.gov'}>`, to: email, subject, html });
-            console.log(`[Email Sent] Nodemailer SUCCESS to: ${email}`);
-            return true;
-        } catch (e) {
-            console.error("[Email Failed] Nodemailer error:", e.message);
-        }
-    }
+    // --- 1. PRIORITIZE GMAIL API / CONFIGURED EMAIL ---
+    if (await sendAppEmail(email, subject, html)) return true;
 
     // --- 2. FALLBACK TO BREVO ---
     if (BREVO_API_KEY) {
         const data = JSON.stringify({
-            sender: { name: "CivicConnect", email: EMAIL_USER || "no-reply@civic.gov" },
+            sender: { name: "CivicConnect", email: GMAIL_SENDER || EMAIL_USER || "no-reply@civic.gov" },
             to: [{ email }],
             subject,
             htmlContent: html
@@ -229,18 +266,11 @@ const sendStatusUpdateEmail = async (email, complaintId, title, newStatus, remar
         </div>
     `;
 
-    if (emailTransporter) {
-        try {
-            await emailTransporter.sendMail({ from: `"CivicConnect" <${EMAIL_USER || 'no-reply@civic.gov'}>`, to: email, subject, html });
-            return;
-        } catch (e) {
-            console.error("Nodemailer status failed:", e.message);
-        }
-    }
+    if (await sendAppEmail(email, subject, html)) return;
 
     if (BREVO_API_KEY) {
         const data = JSON.stringify({
-            sender: { name: "CivicConnect", email: EMAIL_USER || "no-reply@civic.gov" },
+            sender: { name: "CivicConnect", email: GMAIL_SENDER || EMAIL_USER || "no-reply@civic.gov" },
             to: [{ email }],
             subject,
             htmlContent: html
@@ -327,16 +357,11 @@ const sendComplaintRegistrationEmail = async (email, complaintId, title, categor
         </div>
     `;
 
-    if (emailTransporter) {
-        try {
-            await emailTransporter.sendMail({ from: `"CivicConnect" <${EMAIL_USER || 'no-reply@civic.gov'}>`, to: email, subject, html });
-            return;
-        } catch (e) { console.error("Registration email failed:", e.message); }
-    }
+    if (await sendAppEmail(email, subject, html)) return;
 
     if (BREVO_API_KEY) {
         const data = JSON.stringify({
-            sender: { name: "CivicConnect", email: EMAIL_USER || "no-reply@civic.gov" },
+            sender: { name: "CivicConnect", email: GMAIL_SENDER || EMAIL_USER || "no-reply@civic.gov" },
             to: [{ email }],
             subject,
             htmlContent: html
@@ -356,4 +381,4 @@ const sendComplaintRegistrationEmail = async (email, complaintId, title, categor
     console.log(`\n📧 [Registration Mock] To: ${email} | ID: ${complaintId}\n`);
 };
 
-module.exports = { generateOTP, sendEmailOTP, sendSmsOTP, sendStatusUpdateEmail, sendComplaintRegistrationEmail };
+module.exports = { generateOTP, sendEmailOTP, sendSmsOTP, sendStatusUpdateEmail, sendComplaintRegistrationEmail, sendAppEmail };

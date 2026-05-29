@@ -9,7 +9,7 @@ const { connectDB, User, Issue, Vote, Comment, NotificationPreference, Verificat
 const admin = require('firebase-admin');
 const path = require('path');
 const https = require('https');
-const { generateOTP, sendEmailOTP, sendSmsOTP, sendStatusUpdateEmail, sendComplaintRegistrationEmail } = require('./mailer');
+const { generateOTP, sendEmailOTP, sendSmsOTP, sendStatusUpdateEmail, sendComplaintRegistrationEmail, sendAppEmail } = require('./mailer');
 const http = require('http');
 const socketIo = require('socket.io');
 
@@ -44,33 +44,7 @@ try {
   console.log('[Notice] Twilio module unavailable — SMS will be mocked to console.');
 }
 
-let nodemailer = null;
-let emailTransporter = null;
-try {
-  nodemailer = require('nodemailer');
-  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-    // GMAIL
-    emailTransporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-      family: 4
-    });
-    console.log("[Notice] Gmail SMTP configured successfully.");
-  } else if (process.env.MAILTRAP_USER && process.env.MAILTRAP_PASS) {
-    // MAILTRAP
-    emailTransporter = nodemailer.createTransport({
-      host: "sandbox.smtp.mailtrap.io",
-      port: 2525,
-      auth: { user: process.env.MAILTRAP_USER, pass: process.env.MAILTRAP_PASS },
-      family: 4
-    });
-    console.log("[Notice] Mailtrap (Dev) SMTP configured successfully.");
-  } else {
-    console.log("[Notice] No real Email service configured — using Console Mocking.");
-  }
-} catch (e) {
-  console.log("[Notice] Nodemailer unavailable — using Console Mocking.");
-}
+console.log("[Notice] Email notifications are handled by backend/mailer.js.");
 
 const sendSmsNotification = async (to, message) => {
   if (!to) return;
@@ -123,10 +97,13 @@ const sendEmailNotification = async (to, subject, html) => {
   if (!to) return;
   const plainText = html.replace(/<[^>]*>?/gm, '').trim();
 
-  // --- 1. TRY BREVO API (Unified Email + SMS) ---
+  // --- 1. TRY GMAIL API / CONFIGURED MAILER ---
+  if (await sendAppEmail(to, subject, html, "CivicConnect Admin")) return;
+
+  // --- 2. TRY BREVO API FALLBACK ---
   if (process.env.BREVO_API_KEY) {
     const data = JSON.stringify({
-      sender: { name: "CivicConnect Admin", email: process.env.EMAIL_USER || "alert@city.gov" },
+      sender: { name: "CivicConnect Admin", email: process.env.GMAIL_SENDER || process.env.EMAIL_USER || "alert@city.gov" },
       to: [{ email: to }],
       subject: subject,
       htmlContent: html
@@ -150,18 +127,6 @@ const sendEmailNotification = async (to, subject, html) => {
     req.on('error', (err) => console.error(`[Brevo Email Error]`, err.message));
     req.write(data);
     req.end();
-    return;
-  }
-
-  // --- 2. TRY NODEMAILER (Gmail/Mailtrap) FALLBACK ---
-  if (emailTransporter) {
-    try {
-      const senderEmail = process.env.EMAIL_USER || 'alert@city.gov';
-      await emailTransporter.sendMail({ from: `"CivicConnect Admin" <${senderEmail}>`, to, subject, html });
-      console.log(`[Email Success] Real notification sent from ${senderEmail} via SMTP to ${to}`);
-    } catch (error) {
-      console.error(`[Email Error] Failed SMTP dispatch:`, error.message);
-    }
     return;
   }
 
@@ -465,7 +430,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 // --- PROFILE UPDATE WITH OTP ---
 app.post('/api/auth/profile-otp', authenticateToken, async (req, res) => {
   try {
-    const user = await db.get('SELECT email, name FROM users WHERE id = ?', [req.user.id]);
+    const user = await User.findOne({ id: req.user.id });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const otp = generateOTP();
