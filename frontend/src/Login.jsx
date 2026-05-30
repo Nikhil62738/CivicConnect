@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
-import { maharashtraDistricts, API_URL } from './constants';
+import { API_URL } from './constants';
 
 export default function Login({ onLogin, onSwitchToRegister }) {
     const [mode, setMode] = useState('user'); // 'user' | 'admin'
@@ -119,7 +119,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
         const isFirebaseFlow = loginFlow === 'otp';
 
         return (
-            <div className="min-h-screen flex items-center justify-center py-12 px-6 relative">
+            <div className="h-[calc(100vh-89px)] overflow-hidden flex items-center justify-center py-4 px-6 relative">
                 <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-secondary/20 blur-[120px] pointer-events-none"></div>
 
                 <div className="glass-card p-10 max-w-sm w-full flex flex-col gap-4 z-10 animate-in slide-in-from-right-8">
@@ -188,7 +188,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
                             disabled={loading}
                             className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-semibold mx-auto"
                         >
-                            Didn't get it? Resend Code
+                            Didn&apos;t get it? Resend Code
                         </button>
                     </form>
 
@@ -207,7 +207,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
     // ─── OTP Request Screen (passwordless) ───────────────────────────────────
     if (loginFlow === 'otp' && step === 'credentials') {
         return (
-            <div className="min-h-screen flex items-center justify-center py-12 px-6 relative">
+            <div className="h-[calc(100vh-89px)] overflow-hidden flex items-center justify-center py-4 px-6 relative">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/20 blur-[120px] pointer-events-none"></div>
 
                 <form onSubmit={requestOtp} className="glass-card p-10 max-w-sm w-full flex flex-col gap-4 z-10 animate-in slide-in-from-left-8">
@@ -226,7 +226,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
                         Login with OTP
                     </h2>
                     <p className="text-xs text-center text-slate-600">
-                        Enter your registered email. We'll send a one-time code to your <strong className="text-slate-700">email & mobile number</strong>.
+                        Enter your registered email. We&apos;ll send a one-time code to your <strong className="text-slate-700">email &amp; mobile number</strong>.
                     </p>
 
                     {error && (
@@ -270,7 +270,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
 
     // ─── Password Login Screen (default) ─────────────────────────────────────
     return (
-        <div className="min-h-screen flex items-center justify-center py-12 px-6 relative">
+        <div className="h-[calc(100vh-89px)] overflow-hidden flex items-center justify-center py-4 px-6 relative">
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/20 blur-[120px] pointer-events-none"></div>
             <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-secondary/10 blur-[100px] pointer-events-none"></div>
 

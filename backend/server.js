@@ -282,8 +282,13 @@ const otpStore = new Map();
 
 app.post('/api/auth/send-otp', async (req, res) => {
   try {
-    const { identifier } = req.body;
+    const identifier = String(req.body.identifier || '').trim().toLowerCase();
     if (!identifier) return res.status(400).json({ error: 'Email or Mobile required' });
+
+    const registeredUser = await User.findOne({ $or: [{ email: identifier }, { phone: identifier }] });
+    if (!registeredUser || !registeredUser.password) {
+      return res.status(404).json({ error: 'No registered account found. Please register first.' });
+    }
 
     const otp = generateOTP();
     otpStore.set(identifier, { otp, expires: Date.now() + 5 * 60 * 1000 });
@@ -306,7 +311,8 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
 app.post('/api/auth/verify-otp', async (req, res) => {
   try {
-    const { identifier, otp } = req.body;
+    const identifier = String(req.body.identifier || '').trim().toLowerCase();
+    const { otp } = req.body;
     const stored = otpStore.get(identifier);
 
     if (!stored || stored.otp !== otp || Date.now() > stored.expires) {
@@ -316,14 +322,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     otpStore.delete(identifier);
     let user = await User.findOne({ $or: [{ email: identifier }, { phone: identifier }] });
 
-    if (!user && identifier.includes('@')) {
-      // Auto-register via email if not exists
-      const newUserId = generateUserId();
-      user = new User({ id: newUserId, email: identifier, role: 'user', name: identifier.split('@')[0] });
-      await user.save();
-    }
-
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user || !user.password) return res.status(404).json({ error: 'No registered account found. Please register first.' });
 
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role, department: user.department }, JWT_SECRET, { expiresIn: '24h' });
     res.json({ success: true, token, user });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import { maharashtraDistricts, API_URL } from './constants';
 import L from 'leaflet';
@@ -25,8 +25,6 @@ const defaultCenter = [20.5937, 78.9629]; // India geographic center
 
 // Component to handle map clicks with BOUNDARY ENFORCEMENT
 function LocationSelector({ formData, setFormData }) {
-  const map = useMap();
-
   useMapEvents({
     async click(e) {
       if (!formData.city) {
@@ -520,7 +518,7 @@ const UserHistory = ({ onActivity }) => {
               {issue.admin_remarks && (
                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 mb-6 shadow-inner relative">
                   <div className="text-[8px] font-black text-primary uppercase tracking-[0.2em] mb-2">🏛️ Official Administration Note</div>
-                  <p className="text-xs text-slate-700 italic font-medium leading-relaxed">"{issue.admin_remarks}"</p>
+                  <p className="text-xs text-slate-700 italic font-medium leading-relaxed">&quot;{issue.admin_remarks}&quot;</p>
                 </div>
               )}
 
@@ -759,7 +757,7 @@ export default function App() {
   const [smartSuggestions, setSmartSuggestions] = useState([]);
   const [globalLoading, setGlobalLoading] = useState(false);
 
-  const fetchGlobalData = async () => {
+  const fetchGlobalData = useCallback(async () => {
     if (globalIssues.length === 0) setGlobalLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/public/issues`);
@@ -777,13 +775,13 @@ export default function App() {
     } finally {
       setGlobalLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchGlobalData();
     const interval = setInterval(fetchGlobalData, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchGlobalData]);
 
   const cityRanking = useMemo(() => {
     return Object.entries(maharashtraDistricts)
@@ -1152,11 +1150,11 @@ export default function App() {
                     </button>
                   )}
                   <NotificationBell complaintId={lastComplaintId} />
-                  <div className="flex items-center gap-3 ml-4 pl-4 border-l border-slate-300">
-                    <button onClick={() => setShowProfileModal(true)} className="text-slate-700 hover:text-primary transition-colors text-sm font-medium cursor-pointer">
+                  <div className="flex items-center gap-3 ml-4 pl-4 border-l border-white/40">
+                    <button onClick={() => setShowProfileModal(true)} className="text-white hover:text-orange-200 transition-colors text-sm font-semibold cursor-pointer">
                       {t.welcome}, {user.name.split(' ')[0]}
                     </button>
-                    <button onClick={handleLogout} className="text-slate-600 hover:text-slate-800 transition-colors text-sm font-bold bg-white/50 px-3 py-1.5 rounded-lg border border-slate-300/50 hover:bg-white active:scale-95 transition-all">
+                    <button onClick={handleLogout} className="text-[#003366] hover:text-[#002244] transition-colors text-sm font-bold bg-white px-3 py-1.5 rounded-lg border border-white/70 hover:bg-orange-50 active:scale-95 transition-all shadow-sm">
                       {t.logout}
                     </button>
                   </div>
@@ -1613,7 +1611,7 @@ export default function App() {
         />
       )}
 
-      <CivicChatbot />
+      {user && <CivicChatbot />}
     </div>
   );
 }
